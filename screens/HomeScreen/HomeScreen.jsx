@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import styles from './HomeScreenStyles'; // Importa los estilos
 
-// Cambios 
+// Cambios 2
 const HomeScreen = () => {
     const navigation = useNavigation();
   return (
