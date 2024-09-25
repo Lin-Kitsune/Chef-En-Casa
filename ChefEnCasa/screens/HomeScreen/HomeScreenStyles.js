@@ -1,10 +1,13 @@
 import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f5f5f5' 
+  },
   header: { 
     padding: 20, 
-    backgroundColor: '#4CAF50', 
+    backgroundColor: '#619537',  // Cambiado el color a #619537
     flexDirection: 'row', 
     alignItems: 'center' 
   },
@@ -29,7 +32,7 @@ const styles = StyleSheet.create({
   topButton: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: '#4CAF50', 
+    backgroundColor: '#619537',  // Cambiado el color a #619537
     padding: 10, 
     borderRadius: 5 
   },
@@ -40,23 +43,72 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around', 
     margin: 20 
   },
-  category: { alignItems: 'center', margin: 10 },
+  category: { 
+    alignItems: 'center', 
+    justifyContent: 'center', // Asegura que el contenido esté centrado
+    margin: 10,
+    width: 120,  // Ajusta el ancho y alto para que sean cuadrados
+    height: 120, 
+    borderRadius: 10, 
+    padding: 10 
+  },
   categoryImage: { 
     width: 80, 
     height: 80, 
-    borderRadius: 40 
+    borderRadius: 40 // Para que la imagen sea redonda
   },
   categoryText: { 
     marginTop: 10, 
     fontSize: 16, 
-    fontWeight: 'bold' 
+    fontWeight: 'bold',
+    textAlign: 'center' // Centra el texto dentro del cuadro
+  },
+  categoryDesayuno: { 
+    backgroundColor: '#fae19c', 
+    alignItems: 'center',
+    justifyContent: 'center', 
+    width: 120, 
+    height: 120, 
+    borderRadius: 10, 
+    margin: 10, 
+  },
+  categoryAlmuerzo: { 
+    backgroundColor: '#d2afdf', 
+    alignItems: 'center',
+    justifyContent: 'center', 
+    width: 120, 
+    height: 120, 
+    borderRadius: 10, 
+    margin: 10, 
+  },
+  categoryCena: { 
+    backgroundColor: '#fdd499', 
+    alignItems: 'center',
+    justifyContent: 'center', 
+    width: 120, 
+    height: 120, 
+    borderRadius: 10, 
+    margin: 10, 
+  },
+  categoryReposteria: { 
+    backgroundColor: '#7fd7bb', 
+    alignItems: 'center',
+    justifyContent: 'center', 
+    width: 120, 
+    height: 120, 
+    borderRadius: 10, 
+    margin: 10, 
   },
   bottomNav: { 
     flexDirection: 'row', 
     justifyContent: 'space-around', 
-    backgroundColor: '#4CAF50', 
-    paddingVertical: 15 
+    backgroundColor: '#619537', 
+    paddingVertical: 15,  // Ajusta este valor según el tamaño deseado de la barra
   },
+  iconStyle: { 
+    fontSize: 30,  // Asegura que los íconos sean lo suficientemente grandes
+    color: '#fff' 
+  }
 });
 
 export default styles;
