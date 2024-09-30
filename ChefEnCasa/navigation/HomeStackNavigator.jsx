@@ -9,9 +9,9 @@ const Stack = createStackNavigator();
 const HomeStackNavigator = () => {
   return (
     <Stack.Navigator>
-      {/* Ocultar el header en HomeScreen */}
+      {/* Cambiar el nombre de la pantalla "Home" a "HomeScreen" */}
       <Stack.Screen 
-        name="Home" 
+        name="HomeScreen"  // Cambia de "Home" a "HomeScreen"
         component={HomeScreen} 
         options={{ 
           headerShown: false 
