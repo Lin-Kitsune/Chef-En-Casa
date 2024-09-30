@@ -4,7 +4,16 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
-
+/*
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const swaggerJsDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+const Joi = require('joi');
+const morgan = require('morgan');
+const winston = require('winston');
+const NodeCache = require('node-cache');
+*/
 
 // Cargar las variables de entorno desde el archivo .env
 dotenv.config();
