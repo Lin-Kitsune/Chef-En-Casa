@@ -4,11 +4,13 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
+const cors = require('cors'); 
 
 
 // Cargar las variables de entorno desde el archivo .env
 dotenv.config();
 const app = express();
+app.use(cors()); 
 app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
@@ -67,13 +69,13 @@ async function startServer() {
 
     // Validar si se envían todos los campos
     if (!nombre || !email || !password) {
-      return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+        return res.status(400).json({ message: 'Todos los campos son obligatorios' });
     }
 
     // Verificar si el usuario ya existe
     const usuarioExistente = await usersCollection.findOne({ email });
     if (usuarioExistente) {
-      return res.status(400).json({ message: 'El usuario ya existe' });
+        return res.status(400).json({ message: 'El usuario ya existe' });
     }
 
     // Hashear la contraseña
@@ -85,10 +87,11 @@ async function startServer() {
 
     // Eliminar la contraseña de la respuesta
     res.status(201).json({ 
-      message: 'Usuario registrado', 
-      usuario: { nombre: nuevoUsuario.nombre, email: nuevoUsuario.email }
+        message: 'Usuario registrado', 
+        usuario: { nombre: nuevoUsuario.nombre, email: nuevoUsuario.email }
     });
   });
+
 
   // LOGIN DE USUARIOS
   app.post('/login', async (req, res) => {
