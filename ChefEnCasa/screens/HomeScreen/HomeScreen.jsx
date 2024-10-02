@@ -51,7 +51,10 @@ const HomeScreen = () => {
         </View>
         
         <View style={{ alignItems: 'center' }}>
-          <TouchableOpacity style={styles.topButton}>
+          <TouchableOpacity 
+            style={styles.topButton}
+            onPress={() => navigation.navigate('ShoppingList')}  // Navegar a la pantalla de "Lista de Compras"
+          >
             <Image source={require('../../assets/icons/lista.png')} style={styles.buttonIcon} />
           </TouchableOpacity>
           <Text style={styles.topButtonText}>Lista</Text>
