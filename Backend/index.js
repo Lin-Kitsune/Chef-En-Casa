@@ -321,3 +321,13 @@ app.listen(PORT, () => {
 
 // Iniciar el servidor y conectar a la base de datos
 startServer().catch(console.error);
+
+/*
+// Manejo centralizado de errores
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Ocurrió un error', error: err.message });
+});
+
+module.exports = app;
+*/
