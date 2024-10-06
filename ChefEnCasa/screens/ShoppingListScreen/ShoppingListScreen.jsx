@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Modal, Image, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, Text, TouchableOpacity, FlatList, Modal, Image, TextInput, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import axios from 'axios';  // Asegúrate de tener Axios instalado
 import styles from './ShoppingListScreenStyles';
+import { fetchIngredients } from '../../services/ingredients';
 import { useNavigation } from '@react-navigation/native';
 
 const ShoppingList = () => {
@@ -21,15 +23,28 @@ const ShoppingList = () => {
   const [ingredientModalVisible, setIngredientModalVisible] = useState(false);
   const [availableIngredients, setAvailableIngredients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
+  // Función para obtener ingredientes desde el servicio
+  const fetchIngredientsList = async () => {
+    try {
+      const ingredients = await fetchIngredients();  // Llama a la API desde el servicio
+      setAvailableIngredients(ingredients);  // Actualizar el estado con los ingredientes
+    } catch (error) {
+      Alert.alert("Error", "No se pudo obtener los ingredientes.");
+      console.error('Error al obtener los ingredientes:', error);
+    }
+  };
 
   const toggleCheck = (id) => {
     setItems(items.map(item => (item.id === id ? { ...item, checked: !item.checked } : item)));
   };
 
   const addItem = (ingredient) => {
-    const newItem = { id: items.length + 1, text: ingredient, checked: false };
+    const newItem = { id: items.length + 1, text: ingredient.name, checked: false };
     setItems([...items, newItem]);
-    setIngredientModalVisible(false); // Cierra el modal de ingredientes después de seleccionar
+    setIngredientModalVisible(false);  // Cierra el modal de ingredientes después de seleccionar
   };
 
   const deleteSelectedItems = () => {
@@ -45,34 +60,31 @@ const ShoppingList = () => {
   };
 
   const openIngredientModal = (category) => {
-    let ingredients = [];
-    switch (category) {
-      case 'Frutas / Verduras':
-        ingredients = ['Manzana', 'Banana', 'Zanahoria', 'Tomate'];
-        break;
-      case 'Carne':
-        ingredients = ['Pollo', 'Carne de Res', 'Cerdo', 'Pescado'];
-        break;
-      case 'Almacén':
-        ingredients = ['Arroz', 'Harina', 'Azúcar', 'Sal'];
-        break;
-      case 'Lácteos':
-        ingredients = ['Leche', 'Queso', 'Yogur', 'Mantequilla'];
-        break;
-      default:
-        ingredients = [];
-    }
-    setAvailableIngredients(ingredients);
-    setSearchTerm(''); // Limpiar el buscador cada vez que se abra el modal
+    setSearchTerm('');  // Limpiar el buscador cada vez que se abra el modal
     setSelectedCategory(category);
-    setModalVisible(false); // Cierra el modal principal
-    setIngredientModalVisible(true); // Abre el modal de ingredientes
+    setModalVisible(false);  // Cierra el modal principal
+    fetchIngredientsList();  // Llama a la API para obtener los ingredientes según la categoría
+    setIngredientModalVisible(true);  // Abre el modal de ingredientes
   };
 
-  // Filtrar ingredientes según el término de búsqueda
+  // Función de paginación para cambiar de página
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  // Ingredientes filtrados según el término de búsqueda
   const filteredIngredients = availableIngredients.filter((ingredient) =>
-    ingredient.toLowerCase().includes(searchTerm.toLowerCase())
+    ingredient.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Calcular los ingredientes que se muestran en la página actual
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentIngredients = filteredIngredients.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Generar botones de paginación
+  const totalPages = Math.ceil(filteredIngredients.length / itemsPerPage);
+  const paginationButtons = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <View style={styles.container}>
@@ -144,7 +156,7 @@ const ShoppingList = () => {
         </View>
       </Modal>
 
-      {/* Modal para seleccionar ingrediente con búsqueda y diseño mejorado */}
+      {/* Modal para seleccionar ingrediente con búsqueda, paginación y diseño mejorado */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -154,21 +166,44 @@ const ShoppingList = () => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Selecciona un {selectedCategory}</Text>
-            {/* Buscador de ingredientes */}
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar ingrediente..."
               value={searchTerm}
               onChangeText={(text) => setSearchTerm(text)}
             />
-            {/* Ingredientes filtrados */}
+            {/* Ingredientes filtrados con imágenes y nombres */}
             <View style={styles.modalOptions}>
-              {filteredIngredients.map((ingredient, index) => (
-                <TouchableOpacity key={index} style={styles.modalIngredientOption} onPress={() => addItem(ingredient)}>
-                  <Text style={styles.modalOptionText}>{ingredient}</Text>
+              {currentIngredients.map((ingredient, index) => (
+                <TouchableOpacity 
+                  key={index} 
+                  style={styles.modalIngredientOption} 
+                  onPress={() => addItem(ingredient)}
+                >
+                  {/* Mostrar la imagen del ingrediente */}
+                  <Image 
+                    source={{ uri: `https://spoonacular.com/cdn/ingredients_100x100/${ingredient.image}` }} 
+                    style={styles.ingredientImage} 
+                  />
+                  {/* Mostrar el nombre del ingrediente */}
+                  <Text style={styles.modalOptionText}>{ingredient.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Botones de paginación */}
+            <View style={styles.paginationContainer}>
+              {paginationButtons.map((page) => (
+                <TouchableOpacity
+                  key={page}
+                  style={[styles.pageButton, currentPage === page && styles.activePageButton]}
+                  onPress={() => handlePageChange(page)}
+                >
+                  <Text style={styles.pageButtonText}>{page}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <TouchableOpacity style={styles.modalCloseButton} onPress={() => setIngredientModalVisible(false)}>
               <Text style={styles.modalCloseButtonText}>Cerrar</Text>
             </TouchableOpacity>

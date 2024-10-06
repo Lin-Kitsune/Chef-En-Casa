@@ -129,6 +129,46 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 20,
   },
+  // Estilos para los botones de paginación
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  pageButton: {
+    backgroundColor: '#ccc',
+    padding: 10,
+    marginHorizontal: 5,
+    borderRadius: 5,
+  },
+  activePageButton: {
+    backgroundColor: '#619537', // Cambia el color del botón activo
+  },
+  pageButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  modalIngredientOption: {
+    width: '45%',
+    height: 120,  // Aumenta el alto para dar espacio a la imagen y al texto
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#619537',
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  ingredientImage: {
+    width: 50,  // Tamaño de la imagen
+    height: 50,
+    marginBottom: 5,  // Espacio entre la imagen y el texto
+  },
+  modalOptionText: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: 'white',
+  },
 });
 
 export default styles;
