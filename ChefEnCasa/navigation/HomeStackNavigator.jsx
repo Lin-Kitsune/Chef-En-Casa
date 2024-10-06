@@ -4,6 +4,7 @@ import HomeScreen from '../screens/HomeScreen/HomeScreen';
 import DesayunoScreen from '../screens/DesayunoScreen/DesayunoScreen';
 import RecipeScreen from '../screens/RecipeScreen/RecipeScreen';
 import ShoppingListScreen from '../screens/ShoppingListScreen/ShoppingListScreen';
+import AlmacenScreen from '../screens/AlmacenScreen/AlmacenScreen';
 
 const Stack = createStackNavigator();
 
@@ -48,6 +49,17 @@ const HomeStackNavigator = () => {
           headerTitleAlign: 'center',
         }}
       />
+      <Stack.Screen
+      name="Almacen"
+      component={AlmacenScreen} 
+      options={{
+        title: 'ALMACÉN',
+        headerStyle: {
+          backgroundColor: '#619537',
+        },
+        headerTintColor: '#fff',
+        headerTitleAlign: 'center',
+      }}/>
     </Stack.Navigator>
   );
 };
