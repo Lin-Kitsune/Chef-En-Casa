@@ -304,3 +304,22 @@ async function testTranslation() {
 
 testTranslation();
 
+// Ruta para obtener todos los ingredientes
+app.get('/ingredientes', async (req, res) => {
+  try {
+    // Configura la solicitud a Spoonacular
+    const response = await axios.get('https://api.spoonacular.com/food/ingredients/search?apiKey=53e373b4ac8a4cc8b32218ec2667597d&query=tomato', //cambiar ingrediente por el que se desea buscar 
+      {
+      params: {
+        apiKey: SPOONACULAR_API_KEY,
+        number: 100 // Número de ingredientes que deseas obtener
+      }
+    });
+
+    // Devuelve los datos obtenidos
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error('Error al obtener la lista de ingredientes:', error.message);
+    res.status(500).json({ error: 'Error al obtener la lista de ingredientes' });
+  }
+});
