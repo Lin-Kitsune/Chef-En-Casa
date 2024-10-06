@@ -43,7 +43,7 @@ const HomeScreen = () => {
       {/* Botones de Almacén y Lista */}
       <View style={styles.topButtonsContainer}>
         <View style={{ alignItems: 'center' }}>
-          <TouchableOpacity style={styles.topButton}>
+          <TouchableOpacity style={styles.topButton} onPress={() => navigation.navigate('Almacen')}>
             <Image source={require('../../assets/icons/almacen.png')} style={styles.buttonIcon} />
           </TouchableOpacity>
           {/* Asegúrate de que el texto esté dentro de un <Text> */}
