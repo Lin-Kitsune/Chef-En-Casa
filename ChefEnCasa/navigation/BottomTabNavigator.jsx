@@ -6,7 +6,7 @@ import HomeScreen from '../screens/HomeScreen/HomeScreen';
 import HomeStackNavigator from '../navigation/HomeStackNavigator'; 
 import ProfileStackNavigator from '../navigation/ProfileStackNavigator'; 
 import SavedScreenStackNavigator from '../navigation/SavedScreenStackNavigator'; 
-import BuscadorScreen from '../screens/BuscadorScreen/BuscadorScreen';
+import BuscadorNavigator from '../navigation/BuscadorNavigator';
 
 const Tab = createBottomTabNavigator();
 
@@ -53,7 +53,7 @@ const BottomTabNavigator = () => {
         tabBarLabel: () => null,
       })}
     >
-      <Tab.Screen name="Buscar" component={BuscadorScreen} />
+      <Tab.Screen name="Buscar" component={BuscadorNavigator} />
       <Tab.Screen name="Marcadores" component={SavedScreenStackNavigator} />
       <Tab.Screen name="Home" component={HomeStackNavigator} />
       <Tab.Screen name="Recetas" component={HomeScreen} />
