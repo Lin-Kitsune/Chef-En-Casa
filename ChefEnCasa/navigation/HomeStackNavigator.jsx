@@ -5,6 +5,7 @@ import DesayunoScreen from '../screens/DesayunoScreen/DesayunoScreen';
 import RecipeScreen from '../screens/RecipeScreen/RecipeScreen';
 import ShoppingListScreen from '../screens/ShoppingListScreen/ShoppingListScreen';
 import AlmacenScreen from '../screens/AlmacenScreen/AlmacenScreen';
+import MetaScreen from '../screens/MetaScreen/MetaScreen';
 
 const Stack = createStackNavigator();
 
@@ -60,6 +61,18 @@ const HomeStackNavigator = () => {
         headerTintColor: '#fff',
         headerTitleAlign: 'center',
       }}/>
+      <Stack.Screen
+      name="Meta" 
+      component={MetaScreen}
+      options={{
+        title: 'META',
+        headerStyle: {
+          backgroundColor: '#619537',
+        },
+        headerTintColor: '#fff',
+        headerTitleAlign: 'center',
+      }}
+      />
     </Stack.Navigator>
   );
 };

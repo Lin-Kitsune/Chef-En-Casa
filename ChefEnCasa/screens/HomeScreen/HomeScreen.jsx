@@ -59,6 +59,16 @@ const HomeScreen = () => {
           </TouchableOpacity>
           <Text style={styles.topButtonText}>Lista</Text>
         </View>
+
+        <View style={{ alignItems: 'center' }}>
+          <TouchableOpacity 
+            style={styles.topButton}
+            onPress={() => navigation.navigate('Meta')}  // Navegar a la pantalla de "Meta"
+          >
+            <Image source={require('../../assets/icons/Grafico.png')} style={styles.buttonIcon} />
+          </TouchableOpacity>
+          <Text style={styles.topButtonText}>Meta</Text>
+        </View>
       </View>
 
       {/* Categorías */}
