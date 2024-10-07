@@ -5,6 +5,9 @@ import DesayunoScreen from '../screens/DesayunoScreen/DesayunoScreen';
 import RecipeScreen from '../screens/RecipeScreen/RecipeScreen';
 import ShoppingListScreen from '../screens/ShoppingListScreen/ShoppingListScreen';
 import AlmacenScreen from '../screens/AlmacenScreen/AlmacenScreen';
+import AlmuerzoScreen from '../screens/AlmuerzoScreen/AlmuerzoScreen';
+import CenaScreen from '../screens/CenaScreen/CenaScreen';
+import ReposteriaScreen from '../screens/ReposteriaScreen/ReposteriaScreen';
 
 const Stack = createStackNavigator();
 
@@ -24,6 +27,42 @@ const HomeStackNavigator = () => {
         component={DesayunoScreen} 
         options={{
           title: 'DESAYUNO',
+          headerStyle: {
+            backgroundColor: '#619537',
+          },
+          headerTintColor: '#fff',
+          headerTitleAlign: 'center',
+        }}
+      />
+      <Stack.Screen 
+        name="Almuerzo" 
+        component={AlmuerzoScreen} 
+        options={{
+          title: 'ALMUERZO',
+          headerStyle: {
+            backgroundColor: '#619537',
+          },
+          headerTintColor: '#fff',
+          headerTitleAlign: 'center',
+        }}
+      />
+      <Stack.Screen 
+        name="Cena" 
+        component={CenaScreen} 
+        options={{
+          title: 'CENA',
+          headerStyle: {
+            backgroundColor: '#619537',
+          },
+          headerTintColor: '#fff',
+          headerTitleAlign: 'center',
+        }}
+      />
+      <Stack.Screen 
+        name="Reposteria" 
+        component={ReposteriaScreen} 
+        options={{
+          title: 'REPOSTERIA',
           headerStyle: {
             backgroundColor: '#619537',
           },
