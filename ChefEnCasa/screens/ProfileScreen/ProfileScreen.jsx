@@ -110,6 +110,14 @@ const ProfileScreen = ({ navigation }) => {
     setSelectedDiet(recommendation);  // Asignamos la recomendación como valor predeterminado
   };
 
+  const calculateWeightRange = (height) => {
+    if (!height) return '';
+    const heightInMeters = height / 100;
+    const minWeight = (18.5 * Math.pow(heightInMeters, 2)).toFixed(1);
+    const maxWeight = (24.9 * Math.pow(heightInMeters, 2)).toFixed(1);
+    return `${minWeight} kg a ${maxWeight} kg`;
+  };  
+
   const renderRecipeItem = ({ item }) => (
     <View style={styles.recipeContainer}>
       <Image source={item.image} style={styles.recipeImage} />
@@ -219,6 +227,7 @@ const ProfileScreen = ({ navigation }) => {
         <View style={healthStyles.modalContainer}>
           <View style={healthStyles.modalContent}>
             <Text style={healthStyles.modalTitle}>Datos de Salud</Text>
+
             <TextInput
               placeholder="Peso (kg)"
               value={weight}
@@ -233,13 +242,6 @@ const ProfileScreen = ({ navigation }) => {
               style={healthStyles.input}
               keyboardType="numeric"
             />
-            <TextInput
-              placeholder="Frecuencia Cardíaca (FC)"
-              value={fc}
-              onChangeText={setFC}
-              style={healthStyles.input}
-              keyboardType="numeric"
-            />
 
             <TouchableOpacity onPress={calculateIMC} style={healthStyles.calculateButton}>
               <Text style={healthStyles.calculateButtonText}>Calcular IMC</Text>
@@ -251,6 +253,14 @@ const ProfileScreen = ({ navigation }) => {
                 <Text style={healthStyles.recommendationText}>
                   Recomendación de dieta: {dietRecommendation}
                 </Text>
+
+                {/* Rango de peso saludable */}
+                <View style={healthStyles.imcRangeContainer}>
+                  <Text style={healthStyles.imcRangeText}>Rango de peso saludable sugerido:</Text>
+                  <Text style={healthStyles.imcRangeValue}>
+                    {calculateWeightRange(height)}
+                  </Text>
+                </View>
 
                 {/* Picker para seleccionar la dieta */}
                 <Picker

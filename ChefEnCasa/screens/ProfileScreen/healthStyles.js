@@ -7,53 +7,67 @@ const healthStyles = StyleSheet.create({
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     modalContent: {
-      width: 300,
       backgroundColor: 'white',
-      borderRadius: 10,
       padding: 20,
+      borderRadius: 10,
+      width: 300,
       alignItems: 'center',
     },
     modalTitle: {
       fontSize: 18,
       fontWeight: 'bold',
-      marginBottom: 20,
       color: '#619537',
+      marginBottom: 20,
     },
     input: {
       borderWidth: 1,
       borderColor: '#ccc',
       padding: 10,
       borderRadius: 5,
-      marginBottom: 20,
       width: '100%',
+      marginBottom: 20,
     },
     calculateButton: {
       backgroundColor: '#619537',
       padding: 15,
       borderRadius: 10,
       marginBottom: 20,
+      width: '100%',
+      alignItems: 'center',
     },
     calculateButtonText: {
-      color: '#fff',
-      textAlign: 'center',
+      color: 'white',
+      fontWeight: 'bold',
     },
     imcResult: {
       fontSize: 18,
       textAlign: 'center',
-      marginVertical: 10,
+      marginBottom: 10,
     },
     recommendationText: {
       fontSize: 16,
       fontWeight: 'bold',
-      marginTop: 10,
       marginBottom: 10,
-      textAlign: 'center',
+    },
+    imcRangeContainer: {
+      marginTop: 10,
+      marginBottom: 20,
+      alignItems: 'center',
+    },
+    imcRangeText: {
+      fontSize: 14,
+      color: '#888',
+    },
+    imcRangeValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#619537',
     },
     picker: {
+      height: 50,
       width: '100%',
       backgroundColor: '#f0f0f0',
       borderRadius: 5,
-      paddingHorizontal: 10,
       marginBottom: 20,
     },
     closeModalButton: {
@@ -67,5 +81,5 @@ const healthStyles = StyleSheet.create({
       color: 'white',
       fontWeight: 'bold',
     },
-  });
+  });  
   export default healthStyles;  
