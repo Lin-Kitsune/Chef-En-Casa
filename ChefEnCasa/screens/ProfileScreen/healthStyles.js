@@ -81,5 +81,6 @@ const healthStyles = StyleSheet.create({
       color: 'white',
       fontWeight: 'bold',
     },
-  });  
+  });
+  
   export default healthStyles;  
