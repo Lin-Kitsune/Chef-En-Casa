@@ -22,7 +22,7 @@ const SplashScreen = () => {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#619537' }}>
       <Animated.View style={{ opacity: fadeAnim }}>
-        <Image source={require('../../assets/images/logo.png')} style={{ width: 200, height: 200 }} />
+        <Image source={require('../../assets/images/Chef-En-Casa.png')} style={{ width: 200, height: 200 }} />
       </Animated.View>
       <TouchableOpacity onPress={navigateToRegister} style={{ marginTop: 50 }}>
         <View style={{ backgroundColor: '#ffcc00', padding: 20, borderRadius: 50 }}>
