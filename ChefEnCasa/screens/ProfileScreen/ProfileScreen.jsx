@@ -109,7 +109,7 @@ const ProfileScreen = ({ navigation }) => {
     setDietRecommendation(recommendation);
     setSelectedDiet(recommendation);  // Asignamos la recomendación como valor predeterminado
   };
-
+  ///Nuevo
   const calculateWeightRange = (height) => {
     if (!height) return '';
     const heightInMeters = height / 100;
