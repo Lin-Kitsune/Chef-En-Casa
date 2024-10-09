@@ -3,7 +3,7 @@ import receta1 from '../../images/receta1.jpg';
 import receta2 from '../../images/receta2.jpg';
 import receta3 from '../../images/receta3.jpg';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faStar, faUtensils, faClock, faPlus, faFilter, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faStar, faUtensils, faClock, faPlus, faFilter, faTimes, faEdit } from '@fortawesome/free-solid-svg-icons';
 import './Recetas.css';
 
 const Recetas = () => {
@@ -14,6 +14,8 @@ const Recetas = () => {
   const [searchQuery, setSearchQuery] = useState(''); // Valor de búsqueda
   const [durationFilter, setDurationFilter] = useState(''); // Duración seleccionada
   const [sortBy, setSortBy] = useState(''); // Ordenar por valoración
+  const [editRecipeModalVisible, setEditRecipeModalVisible] = useState(false); // Para controlar la visibilidad del modal de edición
+  const [selectedRecipe, setSelectedRecipe] = useState(null); // Almacenar la receta seleccionada para editar
   const [newRecipe, setNewRecipe] = useState({
     title: '',
     rating: 0,
@@ -75,6 +77,17 @@ const Recetas = () => {
     setMinRating(0);
     setSearchQuery('');
     toggleFilterModal(); // Cerrar el modal al limpiar
+  };
+
+  // Función para abrir el modal y cargar la receta seleccionada
+  const openEditModal = (recipe) => {
+    setSelectedRecipe(recipe); // Cargamos los datos de la receta seleccionada
+    setEditRecipeModalVisible(true); // Mostramos el modal
+  };
+
+  // Función para cerrar el modal
+  const closeEditModal = () => {
+    setEditRecipeModalVisible(false);
   };
 
   // Función para filtrar las recetas según búsqueda, clasificación, valoración, duración y orden
@@ -146,8 +159,11 @@ const Recetas = () => {
                 <FontAwesomeIcon icon={faUtensils} className="mr-2" style={{ color: '#619537' }} /> {receta.servings} &nbsp;
                 <FontAwesomeIcon icon={faClock} className="mr-2" style={{ color: '#619537' }} /> {receta.time}
               </p>
-              <button className="mt-4 bg-verde-chef text-white py-2 px-4 rounded-full font-bold hover:bg-green-600 transition duration-300">
-                Editar
+              <button 
+                className="mt-4 bg-verde-chef text-white py-2 px-4 rounded-full font-bold hover:bg-green-600 transition duration-300"
+                onClick={() => openEditModal(receta)} // Abrir modal con los datos
+              >
+                <FontAwesomeIcon icon={faEdit}/> Editar
               </button>
             </div>
           </div>
@@ -158,7 +174,7 @@ const Recetas = () => {
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-6xl"> {/* Aumentamos el ancho aquí */}
             <h2 className="text-lg font-bold mb-4">Agregar Receta</h2>
-            <div className="grid grid-cols-4 gap-4"> {/* Cambiamos a un grid de 2 columnas para mejor distribución */}
+            <div className="grid grid-cols-4 gap-4"> 
               
               {/* Título de la receta */}
               <div className="col-span-2">
@@ -308,8 +324,119 @@ const Recetas = () => {
           </div>
         </div>
       )}
+      {/* Modal de editar receta */}
+      {editRecipeModalVisible && selectedRecipe.ingredients && selectedRecipe.ingredients.length > 0 && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-3xl">
+            <h2 className="text-lg font-bold mb-4">Editar Receta</h2>
+            <div className="space-y-4">
+              {/* Título de la receta */}
+              <div>
+                <label className="block mb-2 font-semibold">Título</label>
+                <input 
+                  type="text" 
+                  className="w-full border border-gray-300 rounded-lg p-2" 
+                  value={selectedRecipe.title}
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, title: e.target.value })}
+                />
+              </div>
 
+              {/* Valoración */}
+              <div>
+                <label className="block mb-2 font-semibold">Valoración inicial</label>
+                <input 
+                  type="number" 
+                  className="w-full border border-gray-300 rounded-lg p-2" 
+                  value={selectedRecipe.rating}
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, rating: e.target.value })}
+                />
+              </div>
 
+              {/* Porciones */}
+              <div>
+                <label className="block mb-2 font-semibold">Porciones</label>
+                <input 
+                  type="number" 
+                  className="w-full border border-gray-300 rounded-lg p-2" 
+                  value={selectedRecipe.servings}
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, servings: e.target.value })}
+                />
+              </div>
+
+              {/* Duración */}
+              <div>
+                <label className="block mb-2 font-semibold">Duración</label>
+                <input 
+                  type="text" 
+                  className="w-full border border-gray-300 rounded-lg p-2" 
+                  value={selectedRecipe.duration}
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, duration: e.target.value })}
+                />
+              </div>
+
+              {/* Imagen */}
+              <div className="col-span-2">
+                <label className="block mb-2 font-semibold">Imagen</label>
+                <input 
+                  type="file" 
+                  className="w-full border border-gray-300 rounded-lg p-2"
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, image: e.target.files[0] })}
+                />
+              </div>
+
+              {/* Ingredientes */}
+              <div>
+                <label className="block mb-2 font-semibold">Ingredientes</label>
+                {/* Aquí cargamos los ingredientes para editarlos */}
+                <ul>
+                  {selectedRecipe.ingredients.map((ingredient, index) => (
+                    <li key={index} className="flex justify-between border-b py-2">
+                      <span>{ingredient.name}</span>
+                      <span>{ingredient.quantity}</span>
+                      <button 
+                        onClick={() => removeIngredient(index)} // Usamos la misma función de eliminar ingrediente
+                        className="text-red-500 ml-2"
+                      >
+                        <FontAwesomeIcon icon={faTimes} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Pasos */}
+              <div>
+                <label className="block mb-2 font-semibold">Paso a paso</label>
+                <textarea 
+                  className="w-full border border-gray-300 rounded-lg p-2"
+                  value={selectedRecipe.steps}
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, steps: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Botones para guardar o cancelar */}
+            <div className="flex justify-end mt-4 space-x-4">
+              <button 
+                className="bg-gray-300 text-black py-2 px-4 rounded-full"
+                onClick={closeEditModal}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="bg-verde-chef text-white py-2 px-4 rounded-full"
+                onClick={() => {
+                  // Aquí puedes manejar la lógica de guardar los cambios de la receta
+                  console.log(selectedRecipe);
+                  closeEditModal();
+                }}
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Modal de filtro */}
       {filterModalVisible && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">

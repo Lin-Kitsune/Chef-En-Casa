@@ -23,7 +23,7 @@ const Sidebar = () => {
           } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
           onClick={() => setActive('Ingredientes')}
         >
-          Ingredientes
+          <Link to="/ingredientes">Ingredientes</Link>
         </li>
         <li
           className={`${
