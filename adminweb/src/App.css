@@ -31,8 +31,14 @@
 .app-container {
   display: flex;
   flex-direction: column;
-  margin-top: 60px; /* Compensa la altura del navbar */
+  min-height: 100vh;
 }
+
+.main-content {
+  flex: 1;
+  padding-top: 60px; /* Agrega un padding-top igual a la altura del navbar para que no se sobreponga */
+}
+
 /* Ajusta el contenido para que esté debajo del navbar */
 .main-layout, .app-container {
   margin-top: 60px; /* Añadimos margen para que comience debajo del navbar */
