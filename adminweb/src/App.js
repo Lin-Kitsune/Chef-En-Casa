@@ -17,9 +17,9 @@ function App() {
           {/* MainContent siempre visible en la parte superior */}
           <MainContent />
 
-          <div className="flex flex-row">
-            {/* Sidebar siempre visible */}
-            <Sidebar />
+          <div className="app-container flex">
+          {/* Sidebar a la izquierda */}
+          <Sidebar />
 
             {/* El contenido principal cambia según la ruta */}
             <div className="flex-1 pl-56 pt-1">
