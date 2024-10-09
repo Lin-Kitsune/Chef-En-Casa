@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
 import Sidebar from './components/Sidebar/Sidebar';
 import Recetas from './components/Recetas/Recetas';
+import Ingredientes from './components/Ingredientes/Ingredientes';
 import MainContent from './components/Main/MainContent'; // Importar el MainContent
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
             <div className="flex-1 pl-56 pt-1">
               <Routes>
                 <Route path="/recetas" element={<Recetas />} />
+                <Route path="/ingredientes" element={<Ingredientes />} />
                 {/* Puedes añadir más rutas aquí, por ejemplo ingredientes, usuarios, etc. */}
               </Routes>
             </div>
