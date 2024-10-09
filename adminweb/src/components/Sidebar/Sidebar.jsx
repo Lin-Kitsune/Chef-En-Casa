@@ -39,7 +39,7 @@ const Sidebar = () => {
           } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
           onClick={() => setActive('Meta')}
         >
-          Meta
+          <Link to="/meta">Meta</Link> {/* Agregar enlace a Meta */}
         </li>
       </ul>
     </div>
