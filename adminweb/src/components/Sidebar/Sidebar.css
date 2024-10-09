@@ -1,0 +1,107 @@
+.sidebar {
+  width: 220px; 
+  background-color: white; 
+  border-top: 8px solid #88b04b;
+  height: auto; 
+  padding: 20px;
+  color: black; 
+  position: absolute;
+  top: 540px;
+  z-index: 999;
+}
+
+.menu-title {
+  font-size: 23px; 
+  font-weight: bold; 
+  margin-bottom: 20px; 
+  color: black;
+  text-align: center; 
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar ul li {
+  margin: 20px 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: black;
+  cursor: pointer;
+  transition: background-color 0.3s ease; /* Para hacer una transición suave */
+}
+
+.sidebar ul li.active {
+  background-color: #619537; /* Fondo verde para el elemento activo */
+  color: white; /* Texto blanco en el activo */
+  padding: 10px 15px;
+  border-radius: 8px; /* Bordes redondeados */
+}
+
+.sidebar ul li a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Uniformar el estilo de los links activos y no activos */
+.sidebar ul li.active a {
+  color: white; /* Asegura que el texto en los links activos sea blanco */
+}
+
+/* Ajustes para pantallas MUY grandes (como televisores) */
+@media screen and (min-width: 1600px) {
+  .sidebar {
+    width: 300px; /* Aumentamos el ancho del sidebar */
+    padding: 30px; /* Más espacio interior */
+    top: 700px; /* Ajustamos la posición */
+  }
+
+  .menu-title {
+    font-size: 30px; /* Aumentamos el tamaño del título */
+  }
+
+  .sidebar ul li {
+    font-size: 22px; /* Aumentamos el tamaño del texto */
+    margin: 25px 0;
+  }
+
+  .sidebar ul li.active {
+    padding: 15px 20px; /* Más espacio para el elemento activo */
+  }
+}
+
+/* Media queries para pantallas más pequeñas */
+@media screen and (max-width: 768px) {
+  .sidebar {
+    width: 180px; /* Reducimos el ancho en pantallas más pequeñas */
+    top: auto; /* Permite un ajuste automático para no sobreponer otros elementos */
+    position: relative; /* Cambiamos la posición a relativa */
+  }
+
+  .menu-title {
+    font-size: 20px; /* Reducimos ligeramente el tamaño del título */
+  }
+
+  .sidebar ul li {
+    font-size: 16px; /* Tamaño más pequeño para los elementos del menú */
+    margin: 15px 0; /* Reducimos el margen entre los elementos */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .sidebar {
+    width: 100%; /* Para pantallas muy pequeñas, la barra ocupará todo el ancho */
+    padding: 10px;
+  }
+
+  .menu-title {
+    font-size: 18px; /* Tamaño más pequeño aún */
+  }
+
+  .sidebar ul li {
+    font-size: 14px; /* Reducimos más el tamaño de los elementos */
+  }
+}
+

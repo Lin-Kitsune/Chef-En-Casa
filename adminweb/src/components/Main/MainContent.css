@@ -1,0 +1,113 @@
+.main-content {
+  background-color: #619537; /* Color verde de fondo */
+  background-image: url('../../images/Fondo.png'); /* Imagen de fondo de utensilios */
+  background-size: cover; /* Asegurar que el fondo cubra todo el contenedor */
+  background-position: center; /* Centrar la imagen de fondo */
+  background-repeat: no-repeat; /* Evitar que se repita el fondo */
+  width: 100vw; /* Asegurar que cubra el 100% del ancho del viewport */
+  height: 75vh; /* Ajustar la altura al 55% del viewport */
+  display: flex; /* Alinear elementos en fila */
+  justify-content: space-between; /* Separar el contenido a ambos lados */
+  align-items: center; /* Alinear verticalmente al centro */
+  padding: 0 50px; /* Añadir padding en los lados */
+}
+
+.text-section {
+  width: 50%; /* Ocupar la mitad izquierda de la pantalla */
+}
+
+.main-title {
+  font-size: 3em; /* Tamaño grande del título */
+  color: #ffffff; /* Color del título */
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.description {
+  font-size: 1.5em; /* Tamaño mediano para la descripción */
+  color: #ffffff; /* Color de la descripción */
+  margin-bottom: 20px; /* Espacio entre la descripción y el botón */
+}
+
+.info-button button {
+  background-color: #F5E7A0; /* Color del botón */
+  border: none;
+  padding: 15px 30px; /* Tamaño del botón */
+  color: rgb(0, 0, 0);
+  font-size: 20px; /* Tamaño de la fuente */
+  font-weight: bold;
+  border-radius: 25px; /* Bordes redondeados */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.info-button button:hover {
+  background-color: #7ca444; /* Efecto hover en el botón */
+}
+
+.logo-section {
+  width: 50%; /* Ocupar la mitad derecha de la pantalla */
+  display: flex;
+  justify-content: flex-end; /* Colocar el logo hacia la derecha */
+}
+
+.logo {
+  width: 85%; /* Ajustar el tamaño del logo */
+  max-width: 400px; /* Máximo tamaño del logo */
+  margin-top: 50px;
+  margin-right: 150px;
+}
+
+/* Media queries para pantallas más pequeñas */
+@media screen and (max-width: 768px) {
+  .main-content {
+    flex-direction: column; /* Apilar el contenido verticalmente en pantallas pequeñas */
+    justify-content: center; /* Centramos los elementos */
+    height: auto; /* Ajustamos la altura automáticamente */
+    padding: 20px; /* Añadimos padding para espacio en pantallas pequeñas */
+  }
+
+  .text-section {
+    width: 100%; /* Texto ocupa todo el ancho en pantallas pequeñas */
+    text-align: center; /* Centramos el texto */
+  }
+
+  .main-title {
+    font-size: 2.5em; /* Reducimos ligeramente el tamaño del título */
+  }
+
+  .description {
+    font-size: 1.2em; /* Reducimos el tamaño de la descripción */
+  }
+
+  .logo-section {
+    width: 100%; /* El logo también ocupa todo el ancho */
+    justify-content: center; /* Centramos el logo */
+    margin-top: 20px; /* Añadimos un margen superior para separación */
+  }
+
+  .logo {
+    width: 70%; /* Reducimos el tamaño del logo en pantallas pequeñas */
+    max-width: 300px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .main-title {
+    font-size: 2em; /* Reducimos aún más el tamaño del título */
+  }
+
+  .description {
+    font-size: 1em; /* Reducimos más la descripción */
+  }
+
+  .info-button button {
+    font-size: 18px; /* Reducimos el tamaño del botón */
+    padding: 10px 20px; /* Menor padding en botones */
+  }
+
+  .logo {
+    width: 60%; /* Reducimos más el tamaño del logo */
+    max-width: 250px;
+  }
+}
