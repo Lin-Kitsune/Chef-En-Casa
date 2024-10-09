@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar/Sidebar';
 import Recetas from './components/Recetas/Recetas';
 import Ingredientes from './components/Ingredientes/Ingredientes';
 import MainContent from './components/Main/MainContent'; // Importar el MainContent
+import Meta from './components/Meta/Meta';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
               <Routes>
                 <Route path="/recetas" element={<Recetas />} />
                 <Route path="/ingredientes" element={<Ingredientes />} />
+                <Route path="/meta" element={<Meta />} /> 
                 {/* Puedes añadir más rutas aquí, por ejemplo ingredientes, usuarios, etc. */}
               </Routes>
             </div>
