@@ -13,6 +13,28 @@ const Joi = require('joi');
 const morgan = require('morgan');
 const winston = require('winston');
 const NodeCache = require('node-cache');
+const { ObjectId } = require('mongodb');
+const fs = require('fs'); // Importar el módulo de sistema de archivos (fs)
+const Almacen = require('./models/Almacen');
+const { crearOActualizarAlmacen } = require('./models/Almacen'); // Importar las funciones actualizadas de Almacen.js
+
+
+// Cargar el archivo JSON de ingredientes
+let ingredientesMap = {};
+
+// Leer el archivo JSON de manera síncrona al iniciar el servidor
+fs.readFile('./ingredientes.json', 'utf8', (err, data) => {
+  if (err) {
+    console.error('Error al leer el archivo de ingredientes:', err);
+    return;
+  }
+  ingredientesMap = JSON.parse(data); // Parsear el contenido del archivo JSON
+  console.log('Archivo de ingredientes cargado correctamente');
+});
+
+const convertirIngredienteAEspanol = (ingrediente) => {
+  return ingredientesMap[ingrediente.toLowerCase()] || ingrediente;
+};
 
 // Cargar las variables de entorno desde el archivo .env
 dotenv.config();
@@ -62,6 +84,9 @@ const client = new MongoClient(uri, {
 });
 
 let db; // Variable para almacenar la conexión a la base de datos
+
+let usersCollection; // Definir usersCollection como una variable global
+
 async function connectToDatabase() {
   if (db) return db; // Si ya hay una conexión, devolverla
   try {
@@ -115,8 +140,24 @@ function checkRole(role) {
 
 // Función para iniciar el servidor y conectar a la base de datos
 async function startServer() {
-  const db = await connectToDatabase(); // Conectar a la base de datos
-  const usersCollection = db.collection('usuarios'); // Seleccionar la colección de usuarios
+  try {
+    const db = await connectToDatabase(); // Conectar a la base de datos
+    usersCollection = db.collection('usuarios'); // Asignar la colección a la variable global
+    console.log("Conexión exitosa a la base de datos y colección asignada.");
+
+  } catch (error) {
+    console.error("Error al conectar a la base de datos:", error);
+  }
+}
+
+startServer().catch(console.error);
+
+// Middleware para el manejo centralizado de errores
+app.use((err, req, res, next) => {
+  console.error(err.stack); // Mostrar el error en la consola
+  res.status(500).json({ message: 'Ocurrió un error', error: err.message });
+});
+
 
   // Ruta de prueba para verificar que el servidor está funcionando
   app.get('/', (req, res) => {
@@ -125,7 +166,7 @@ async function startServer() {
 
   // Ruta de registro de usuarios
   app.post('/register', async (req, res) => {
-    const { nombre, email, password } = req.body; // Obtener los datos del cuerpo de la solicitud
+    const { nombre, email, password, diet, allergies } = req.body; // Obtener los datos del cuerpo de la solicitud
 
     if (!nombre || !email || !password) { // Verificar si se envían todos los campos
       return res.status(400).json({ message: 'Todos los campos son obligatorios' });
@@ -139,7 +180,13 @@ async function startServer() {
 
     // Hashear la contraseña antes de guardarla
     const hashedPassword = await bcrypt.hash(password, 10);
-    const nuevoUsuario = { nombre, email, password: hashedPassword }; // Crear el nuevo usuario con la contraseña hasheada
+    const nuevoUsuario = { 
+      nombre, 
+      email, 
+      password: hashedPassword, 
+      diet: diet || null,       // Si se proporciona, asignar; si no, null
+      allergies: allergies || [] // Asignar alergias si se proporcionan, o una lista vacía
+    }; // Crear el nuevo usuario con la contraseña hasheada
 
     await usersCollection.insertOne(nuevoUsuario); // Insertar el nuevo usuario en la base de datos
 
@@ -186,7 +233,37 @@ async function startServer() {
   app.get('/admin', authenticateToken, checkRole('admin'), (req, res) => {
     res.send('Ruta solo para administradores');
   });
-}
+
+// Ruta para que los usuarios actualicen su perfil
+app.put('/perfil', authenticateToken, async (req, res) => {
+  const { diet, allergies } = req.body;  // Obtener dieta y alergias desde el cuerpo de la solicitud
+
+  if (!diet && !allergies) {
+    return res.status(400).json({ message: 'Se requiere al menos una de las siguientes propiedades: dieta o alergias' });
+  }
+
+  try {
+    // Actualizar el perfil del usuario con su dieta y/o alergias
+    const result = await usersCollection.updateOne(
+      { _id: new ObjectId(req.user.id) }, // Buscar usuario por su ID en el token JWT
+      { 
+        $set: { 
+          ...(diet && { diet }),  // Si existe diet, agregarla al perfil
+          ...(allergies && { allergies })  // Si existe allergies, agregarla al perfil
+        }
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado o sin cambios' });
+    }
+
+    res.status(200).json({ message: 'Perfil actualizado', diet, allergies });
+  } catch (error) {
+    console.error('Error al actualizar el perfil:', error.message);
+    res.status(500).json({ message: 'Error al actualizar el perfil', error: error.message });
+  }
+});
 
 // Configuración para la API de Spoonacular
 const SPOONACULAR_API_BASE_URL = 'https://api.spoonacular.com';
@@ -206,31 +283,45 @@ async function translateText(text, targetLanguage = 'es') {
   }
 }
 
-// Ruta para buscar recetas y traducirlas al español
-app.get('/api/recetas', async (req, res) => {
-  const query = req.query.q || 'pasta'; // Obtener el término de búsqueda de los query params
-  try {
-    // Llamar a la API de Spoonacular para obtener recetas
-    const response = await axios.get(`${SPOONACULAR_API_BASE_URL}/recipes/complexSearch`, {
-      params: {
-        apiKey: SPOONACULAR_API_KEY,
-        query: query,
-        number: 5,  // Número de recetas a devolver
-      },
-    });
+app.get('/api/recetas', authenticateToken, async (req, res) => {
+  let query = req.query.q || 'recipes';  // Obtener el término de búsqueda
 
-    // Traducir el título de cada receta al español
+  // Convertir el término de búsqueda al inglés
+  query = convertirIngredienteAEspanol(query);
+
+  const time = req.query.time || null;  // Tiempo de preparación (opcional)
+  const maxServings = req.query.maxServings || null;  // Máximo de porciones (opcional)
+  const diet = req.query.diet || null;   // Dieta (opcional)
+
+  try {
+    const usuario = await usersCollection.findOne({ _id: new ObjectId(req.user.id) });
+
+    const params = {
+      apiKey: SPOONACULAR_API_KEY,
+      query: query,
+      number: 5,  // Número de recetas a devolver
+      diet: usuario.diet || diet || null,
+      excludeIngredients: usuario.allergies ? usuario.allergies.join(',') : null,  // Excluir ingredientes por alergias del usuario
+    };
+
+    // Añadir el filtro de tiempo de preparación si está presente
+    if (time) params.maxReadyTime = time;
+
+    // Añadir el filtro de porciones si está presente
+    if (maxServings) params.maxServings = maxServings;
+
+    // Llamada a la API de Spoonacular
+    const response = await axios.get(`${SPOONACULAR_API_BASE_URL}/recipes/complexSearch`, { params });
+
+    // Traducir títulos al español
     const recetas = response.data.results;
     const recetasTraducidas = await Promise.all(recetas.map(async receta => {
-      const tituloTraducido = await translateText(receta.title, 'es'); // Traducir el título al español
-      return {
-        ...receta,
-        title: tituloTraducido // Reemplazar el título por su traducción
-      };
+      const tituloTraducido = await translateText(receta.title, 'es');
+      return { ...receta, title: tituloTraducido };
     }));
 
-    // Enviar las recetas traducidas como respuesta
     res.json({ results: recetasTraducidas });
+
   } catch (error) {
     console.error('Error al buscar o traducir recetas:', error.message);
     res.status(500).json({ error: 'Error al buscar o traducir recetas' });
@@ -242,51 +333,8 @@ app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
 
-// Iniciar el servidor y conectar a la base de datos
-startServer().catch(console.error);
-
-// Middleware para el manejo centralizado de errores
-app.use((err, req, res, next) => {
-  console.error(err.stack); // Mostrar el error en la consola
-  res.status(500).json({ message: 'Ocurrió un error', error: err.message });
-});
 
 module.exports = app;
-
-// Joi Schema para validar el registro de usuario
-const registerSchema = Joi.object({
-  nombre: Joi.string().required(),
-  email: Joi.string().email().required(), // Validar formato de email
-  password: Joi.string().min(8).pattern(new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^&\*])[a-zA-Z0-9!@#\$%\^&\*]{8,}$')).required(), // Validar contraseña con criterios mínimos
-});
-
-app.post('/register', async (req, res) => {
-  const { nombre, email, password } = req.body; // Obtener los datos del cuerpo de la solicitud
-
-  // Validar los datos usando Joi
-  const { error } = registerSchema.validate({ nombre, email, password });
-  if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-  }
-
-  // Verificar si el usuario ya existe en la base de datos
-  const usuarioExistente = await usersCollection.findOne({ email });
-  if (usuarioExistente) {
-      return res.status(400).json({ message: 'El usuario ya existe' });
-  }
-
-  // Hashear la contraseña antes de guardarla
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const nuevoUsuario = { nombre, email, password: hashedPassword }; // Crear el nuevo usuario con la contraseña hasheada
-
-  await usersCollection.insertOne(nuevoUsuario); // Insertar el nuevo usuario en la base de datos
-
-  // Enviar respuesta sin incluir la contraseña
-  res.status(201).json({ 
-    message: 'Usuario registrado', 
-    usuario: { nombre: nuevoUsuario.nombre, email: nuevoUsuario.email }
-  });
-});
 
 //chefencasa1@chefencasa-437717.iam.gserviceaccount.com
 //GOOGLE_APPLICATION_CREDENTIALS=./ruta/al/archivo_de_credenciales.json
@@ -303,6 +351,8 @@ async function testTranslation() {
 }
 
 testTranslation();
+
+
 
 // Ruta para obtener todos los ingredientes  
 // Modificado para traducirlos al español
@@ -337,3 +387,140 @@ app.get('/ingredientes', async (req, res) => {
     res.status(500).json({ error: 'Error al obtener la lista de ingredientes' });
   }
 });
+
+//============================================ALMACEN=============================================
+//================================================================================================
+
+// Revisar almacén
+app.get('/almacen', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase(); // Asegúrate de que db esté conectado
+    const almacen = await db.collection('almacen').findOne({ usuarioId: new ObjectId(req.user.id) });
+    
+    if (!almacen) {
+      return res.status(404).json({ message: 'Almacén no encontrado' });
+    }
+    res.status(200).json(almacen);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener el almacén' });
+  }
+});
+
+// Ingresar alimentos en el almacén
+app.post('/almacen/registro', authenticateToken, async (req, res) => {
+  const { ingredientes } = req.body;
+  try {
+    const db = await connectToDatabase(); // Conectar a la base de datos
+    await crearOActualizarAlmacen(db, req.user.id, ingredientes); // Utilizar la función para crear o actualizar el almacén
+    res.status(200).json({ message: 'Alimentos registrados o actualizados en el almacén' });
+  } catch (error) {
+    console.error('Error al registrar alimentos:', error);
+    res.status(500).json({ error: 'Error al registrar alimentos' });
+  }
+});
+
+// Descontar alimento de almacén al preparar receta
+app.post('/preparar-receta', authenticateToken, async (req, res) => {
+  const { ingredientesUsados } = req.body; // Ingredientes y cantidades usados
+  try {
+    const db = await connectToDatabase(); // Conectar a la base de datos
+    const almacen = await db.collection('almacen').findOne({ usuarioId: new ObjectId(req.user.id) });
+    
+    if (!almacen) {
+      return res.status(404).json({ message: 'Almacén no encontrado' });
+    }
+
+    // Descontar los ingredientes usados
+    ingredientesUsados.forEach(ingrediente => {
+      const almacenIngrediente = almacen.ingredientes.find(item => item.nombre === ingrediente.nombre);
+      if (almacenIngrediente) {
+        almacenIngrediente.cantidad -= ingrediente.cantidadUsada;
+      }
+    });
+
+    // Actualizar los ingredientes en la base de datos
+    await db.collection('almacen').updateOne(
+      { usuarioId: new ObjectId(req.user.id) },
+      { $set: { ingredientes: almacen.ingredientes } }
+    );
+
+    res.status(200).json({ message: 'Ingredientes descontados del almacén' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar el almacén' });
+  }
+});
+
+
+//============================================DESPERDICIO DE ALIMENTOS=============================================
+//Funcion para revisar desperdicio de alimentos en almacen
+const cron = require('node-cron');
+
+// Tarea programada para revisar cada semana los alimentos perecederos
+cron.schedule('0 0 * * 0', async () => {
+  try {
+    const db = await connectToDatabase(); // Conectar a la base de datos
+    const todosLosAlmacenes = await db.collection('almacen').find({}).toArray();
+    
+    todosLosAlmacenes.forEach(almacen => {
+      almacen.ingredientes.forEach(ingrediente => {
+        if (ingrediente.perecedero && new Date() - new Date(ingrediente.fechaIngreso) > 7 * 24 * 60 * 60 * 1000) {
+          // Registrar desperdicio si no fue consumido en una semana
+          console.log(`Ingrediente ${ingrediente.nombre} se considera desperdicio`);
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Error al procesar el desperdicio:', error);
+  }
+});
+
+//============================================TESTING DESPERDICIO DE ALIMENTOS=============================================
+app.get('/test-desperdicio', async (req, res) => {
+  try {
+    const db = await connectToDatabase(); // Conectar a la base de datos
+    const todosLosAlmacenes = await db.collection('almacen').find({}).toArray();
+    
+    todosLosAlmacenes.forEach(almacen => {
+      almacen.ingredientes.forEach(ingrediente => {
+        if (ingrediente.perecedero && new Date() - new Date(ingrediente.fechaIngreso) > 7 * 24 * 60 * 60 * 1000) {
+          // Registrar desperdicio si no fue consumido en una semana
+          console.log(`Ingrediente ${ingrediente.nombre} se considera desperdicio`);
+        }
+      });
+    });
+
+    res.status(200).json({ message: 'Revisión de desperdicio completada' });
+  } catch (error) {
+    console.error('Error al procesar el desperdicio:', error);
+    res.status(500).json({ error: 'Error al procesar el desperdicio' });
+  }
+});
+
+/*
+//CALCULAR DESPERDICIO SEMANAL==========================================================================
+app.get('/desperdicio-semanal', authenticateToken, async (req, res) => {
+  try {
+    const almacen = await db.collection('almacen').findOne({ usuarioId: new ObjectId(req.user.id) });
+    let desperdicioProteinas = 0, desperdicioCarbohidratos = 0;
+
+    almacen.ingredientes.forEach(ingrediente => {
+      if (ingrediente.perecedero && new Date() - new Date(ingrediente.fechaIngreso) > 7 * 24 * 60 * 60 * 1000) {
+        desperdicioProteinas += ingrediente.proteinas;
+        desperdicioCarbohidratos += ingrediente.carbohidratos;
+      }
+    });
+
+    await db.collection('registroConsumo').insertOne({
+      usuarioId: req.user.id,
+      fecha: new Date(),
+      proteinas: 0,
+      carbohidratos: 0,
+      desperdicio: { proteinas: desperdicioProteinas, carbohidratos: desperdicioCarbohidratos }
+    });
+
+    res.status(200).json({ message: 'Desperdicio semanal calculado', desperdicioProteinas, desperdicioCarbohidratos });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al calcular desperdicio semanal' });
+  }
+});
+*/
