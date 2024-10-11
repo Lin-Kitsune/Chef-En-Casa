@@ -17,6 +17,26 @@ const RecipeScreen = ({ route, navigation }) => {
     setCheckedIngredients(newCheckedIngredients);
   };
 
+   // Función para compartir la receta
+   const onShare = async () => {
+    try {
+      const result = await Share.share({
+        message: `Mira esta increíble receta de ${title}!`,
+      });
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          console.log('Compartido con éxito con actividad: ', result.activityType);
+        } else {
+          console.log('Compartido con éxito');
+        }
+      } else if (result.action === Share.dismissedAction) {
+        console.log('Compartir descartado');
+      }
+    } catch (error) {
+      console.error('Error al compartir: ', error.message);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
@@ -32,6 +52,11 @@ const RecipeScreen = ({ route, navigation }) => {
           {/* Floating Favorite Button */}
           <TouchableOpacity style={styles.favoriteButton}>
             <Icon name="heart" size={24} color="#f44336" />
+          </TouchableOpacity>
+
+          {/* Floating Share Button - Botón flotante de compartir */}
+          <TouchableOpacity style={styles.shareButton} onPress={onShare}>
+            <Icon name="share-alt" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
 

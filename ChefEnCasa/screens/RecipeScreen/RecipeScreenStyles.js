@@ -100,6 +100,15 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     flex: 1,  // Para ocupar el resto del espacio disponible
   },
+  shareButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    backgroundColor: '#619537',  
+    padding: 10,
+    borderRadius: 100,
+    elevation: 5,  // Sombra para dar un efecto de botón flotante
+  },
 });
 
 export default styles;
