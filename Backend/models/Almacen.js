@@ -1,12 +1,35 @@
 const { ObjectId } = require('mongodb');
 
+// Mapa de conversiones para normalizar unidades a gramos
+const conversiones = {
+  'gram': 1,          // Base para gramos
+  'ml': 1,            // Base para mililitros
+  'kg': 1000,         // 1 kg = 1000 gramos
+  'l': 1000,          // 1 litro = 1000 ml
+  'tbsp': 15,         // 1 tablespoon = 15 gramos/mililitros
+  'tsp': 5,           // 1 teaspoon = 5 gramos/mililitros
+  'cup': 240,         // 1 cup = 240 gramos/mililitros
+  'oz': 28.35,        // 1 ounce = 28.35 gramos
+  'lb': 453.592,      // 1 pound = 453.592 gramos
+  'pinch': 0.36       // 1 pinch (pizca) = 0.36 gramos (aproximado)
+};
+
+// Función para convertir una cantidad a gramos o mililitros
+function convertirMedida(cantidad, unidad) {
+  const conversionFactor = conversiones[unidad.toLowerCase()];
+  if (!conversionFactor) {
+    throw new Error(`Unidad desconocida: ${unidad}`);
+  }
+  return cantidad * conversionFactor;
+}
+
 // Definir el esquema del almacén (usando una estructura similar a la del usuario)
 const almacenSchema = {
   usuarioId: ObjectId, // ID del usuario que posee este almacén
   ingredientes: [
     {
       nombre: String,      // Nombre del ingrediente
-      cantidad: Number,    // Cantidad de ingrediente en el almacén
+      cantidad: Number,    // Cantidad de ingrediente en el almacén (en medidas como gramos)
       fechaIngreso: { type: Date, default: Date.now }, // Fecha de ingreso
       perecedero: Boolean  // Si el ingrediente es perecedero
     }
@@ -19,16 +42,39 @@ async function crearOActualizarAlmacen(db, usuarioId, ingredientes) {
     const almacen = await db.collection('almacen').findOne({ usuarioId: new ObjectId(usuarioId) });
 
     if (!almacen) {
-      // Crear un nuevo almacén
+      // Crear un nuevo almacén si no existe
       await db.collection('almacen').insertOne({
         usuarioId: new ObjectId(usuarioId),
-        ingredientes
+        ingredientes: ingredientes.map(ing => ({
+          nombre: ing.nombre.toLowerCase(),
+          cantidad: convertirMedida(ing.cantidad, ing.unidad), // Convertir a gramos o mililitros
+          fechaIngreso: new Date(),
+          perecedero: ing.perecedero || false
+        }))
       });
     } else {
-      // Actualizar el almacén existente
+      // Si el almacén existe, actualizamos o añadimos ingredientes
+      ingredientes.forEach(ing => {
+        const almacenIngrediente = almacen.ingredientes.find(item => item.nombre === ing.nombre.toLowerCase());
+
+        if (almacenIngrediente) {
+          // Si el ingrediente ya existe, sumamos la cantidad (convertida)
+          almacenIngrediente.cantidad += convertirMedida(ing.cantidad, ing.unidad);
+        } else {
+          // Si es un nuevo ingrediente, lo añadimos
+          almacen.ingredientes.push({
+            nombre: ing.nombre.toLowerCase(),
+            cantidad: convertirMedida(ing.cantidad, ing.unidad),
+            fechaIngreso: new Date(),
+            perecedero: ing.perecedero || false
+          });
+        }
+      });
+
+      // Actualizar el almacén en la base de datos
       await db.collection('almacen').updateOne(
         { usuarioId: new ObjectId(usuarioId) },
-        { $set: { ingredientes } }
+        { $set: { ingredientes: almacen.ingredientes } }
       );
     }
 
@@ -37,6 +83,15 @@ async function crearOActualizarAlmacen(db, usuarioId, ingredientes) {
   }
 }
 
-// Exportar las funciones necesarias
-module.exports = { almacenSchema, crearOActualizarAlmacen };
+// Función para buscar un ingrediente por su nombre
+async function buscarIngredientePorNombre(db, usuarioId, nombreIngrediente) {
+  const almacen = await db.collection('almacen').findOne({ usuarioId: new ObjectId(usuarioId) });
+  if (!almacen) {
+    return null;
+  }
+  return almacen.ingredientes.find(item => item.nombre === nombreIngrediente.toLowerCase());
+}
+
+module.exports = { almacenSchema, crearOActualizarAlmacen, buscarIngredientePorNombre };
+
 
