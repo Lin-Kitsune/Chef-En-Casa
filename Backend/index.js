@@ -284,10 +284,12 @@ async function translateText(text, targetLanguage = 'es') {
 }
 
 app.get('/api/recetas', authenticateToken, async (req, res) => {
-  let query = req.query.q || 'recipes';  // Obtener el término de búsqueda
+  let query = req.query.q || '';  // Permitir que 'q' sea opcional, si no hay, no se filtra por un término específico
 
-  // Convertir el término de búsqueda al inglés
-  query = convertirIngredienteAEspanol(query);
+  // Convertir el término de búsqueda al español (si se provee)
+  if (query) {
+    query = convertirIngredienteAEspanol(query);
+  }
 
   const time = req.query.time || null;  // Tiempo de preparación (opcional)
   const maxServings = req.query.maxServings || null;  // Máximo de porciones (opcional)
@@ -298,9 +300,9 @@ app.get('/api/recetas', authenticateToken, async (req, res) => {
 
     const params = {
       apiKey: SPOONACULAR_API_KEY,
-      query: query,
-      number: 5,  // Número de recetas a devolver
-      diet: usuario.diet || diet || null,
+      query: query || null,  // Si no hay query, el campo query será null y no se filtrará por palabra clave
+      number: 10,  // Número de recetas a devolver (puedes ajustar este número según necesidad)
+      diet: usuario.diet || diet || null,  // Priorizar la dieta del perfil del usuario
       excludeIngredients: usuario.allergies ? usuario.allergies.join(',') : null,  // Excluir ingredientes por alergias del usuario
     };
 
