@@ -11,15 +11,35 @@ const conversiones = {
   'cup': 240,         // 1 cup = 240 gramos/mililitros
   'oz': 28.35,        // 1 ounce = 28.35 gramos
   'lb': 453.592,      // 1 pound = 453.592 gramos
-  'pinch': 0.36       // 1 pinch (pizca) = 0.36 gramos (aproximado)
+  'pinche': 0.36,      // 1 pinch (pizca) = 0.36 gramos (aproximado)
+  'clove': 5,         // 1 clove = 5 gramos
+  'head': 1000,        // 1 head = 1000 gramos
+  'ounce': 28.35,      // 1 ounce = 28.35 gramos
+  'serving': 0.5,       // 1 serving = 0.5 gramos
+  '""' : 1,          // 1 " = 0.5 gramos
+  "strip": 5,        // 1 strip = 5 gramos
+  "large": 100,       // 1 large = 100 gramos
+  "unidad": 100       // 1 unidad = 50 gramos
 };
 
 // Función para convertir una cantidad a gramos o mililitros
 function convertirMedida(cantidad, unidad) {
+  // Verificar si la unidad es una cadena vacía o nula
+  if (!unidad || unidad.trim() === '') {
+    console.warn(`Unidad vacía para la cantidad ${cantidad}, asignando unidad por defecto.`);
+    unidad = 'gram'; // Asignar una unidad por defecto si está vacía, como 'gram'
+  }
+
+  // Convertir la unidad a singular si es plural
+  if (unidad.endsWith('s')) {
+    unidad = unidad.slice(0, -1); // Quitar la 's' final para convertir a singular
+  }
+
   const conversionFactor = conversiones[unidad.toLowerCase()];
   if (!conversionFactor) {
     throw new Error(`Unidad desconocida: ${unidad}`);
   }
+
   return cantidad * conversionFactor;
 }
 
