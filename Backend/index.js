@@ -360,16 +360,46 @@ testTranslation();
 
 //============================================INFO RECETA=============================================
 
-// Obtener detalles de una receta desde Spoonacular
+// Obtener detalles de una receta desde Spoonacular y traducirlos al español
 app.get('/receta/:id', authenticateToken, async (req, res) => {
   const recipeId = req.params.id; // Obtener el ID de la receta desde la URL
 
   try {
     // Llamar a la API de Spoonacular para obtener la información de la receta
     const receta = await obtenerRecetaDeSpoonacular(recipeId);
-    res.status(200).json(receta); // Devolver la receta en formato JSON
+
+    // Traducir el título de la receta
+    const tituloTraducido = await translateText(receta.title, 'es');
+
+    // Traducir los ingredientes de la receta
+    const ingredientesTraducidos = await Promise.all(receta.extendedIngredients.map(async ingrediente => {
+      const nombreTraducido = await translateText(ingrediente.name, 'es'); // Traducir el nombre del ingrediente al español
+      const descripcionTraducida = await translateText(ingrediente.original, 'es'); // Traducir la descripción completa
+      return { 
+        ...ingrediente, 
+        name: nombreTraducido,  // Sobrescribir el campo 'name' con la traducción
+        original: descripcionTraducida  // Sobrescribir la descripción completa
+      };
+    }));
+
+    // Traducir las instrucciones de la receta si existen
+    let instruccionesTraducidas = '';
+    if (receta.instructions) {
+      instruccionesTraducidas = await translateText(receta.instructions, 'es');
+    }
+
+    // Devolver la receta traducida
+    res.status(200).json({
+      title: tituloTraducido,
+      ingredients: ingredientesTraducidos,
+      instructions: instruccionesTraducidas || 'No hay instrucciones disponibles',
+      readyInMinutes: receta.readyInMinutes,
+      servings: receta.servings,
+      image: receta.image
+    });
+
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener la receta de Spoonacular', error: error.message });
+    res.status(500).json({ message: 'Error al obtener o traducir la receta de Spoonacular', error: error.message });
   }
 });
 
@@ -382,14 +412,13 @@ async function obtenerRecetaDeSpoonacular(recipeId) {
       }
     });
 
-    const receta = response.data;
-    return receta;
+    return response.data;
   } catch (error) {
     throw new Error('Error al obtener la receta de Spoonacular: ' + error.message);
   }
 }
 
-//===================================================INGREDIENTES=============================================
+
 // Ruta para obtener todos los ingredientes  
 // Modificado para traducirlos al español
 app.get('/ingredientes', async (req, res) => {
@@ -438,20 +467,51 @@ const conversiones = {
   'cup': 240,         // 1 cup = 240 gramos/mililitros
   'oz': 28.35,        // 1 ounce = 28.35 gramos
   'lb': 453.592,      // 1 pound = 453.592 gramos
-  'pinch': 0.36       // 1 pinch (pizca) = 0.36 gramos (aproximado)
+  'pinche': 0.36,      // 1 pinch (pizca) = 0.36 gramos (aproximado)
+  'clove': 5,         // 1 clove = 5 gramos
+  'head': 1000,        // 1 head = 1000 gramos
+  'ounce': 28.35,      // 1 ounce = 28.35 gramos
+  'serving': 0.5,       // 1 serving = 0.5 gramos
+  '""' : 1,          // 1 " = 0.5 gramos
+  "strip": 5,        // 1 strip = 5 gramos
+  "large": 100,       // 1 large = 100 gramos
+  "unidad": 100       // 1 unidad = 50 gramos
 };
 
 // Función para convertir una cantidad a gramos o mililitros
 function convertirMedida(cantidad, unidad) {
+  // Verificar si la unidad es una cadena vacía o nula
+  if (!unidad || unidad.trim() === '') {
+    console.warn(`Unidad vacía para la cantidad ${cantidad}, asignando unidad por defecto.`);
+    unidad = 'gram'; // Asignar una unidad por defecto si está vacía, como 'gram'
+  }
+
+  // Convertir la unidad a singular si es plural
+  if (unidad.endsWith('s')) {
+    unidad = unidad.slice(0, -1); // Quitar la 's' final para convertir a singular
+  }
+
   const conversionFactor = conversiones[unidad.toLowerCase()];
   if (!conversionFactor) {
     throw new Error(`Unidad desconocida: ${unidad}`);
   }
+
   return cantidad * conversionFactor;
 }
 
 //============================================ALMACEN=============================================
 //================================================================================================
+
+// Traducción de ingredientes ingresados por el usuario en español a inglés
+const traducirIngredienteAIngles = (ingrediente) => {
+  // Buscar el nombre en el archivo ingredientes.json, si no está, se mantiene en español
+  for (const [espanol, ingles] of Object.entries(ingredientesMap)) {
+    if (espanol.toLowerCase() === ingrediente.toLowerCase()) {
+      return ingles;
+    }
+  }
+  return ingrediente;  // Si no hay traducción, devolver el mismo nombre
+};
 
 // Revisar almacén
 app.get('/almacen', authenticateToken, async (req, res) => {
@@ -468,12 +528,19 @@ app.get('/almacen', authenticateToken, async (req, res) => {
   }
 });
 
-// Ingresar alimentos en el almacén
 app.post('/almacen/registro', authenticateToken, async (req, res) => {
   const { ingredientes } = req.body;
+
   try {
     const db = await connectToDatabase(); // Conectar a la base de datos
-    await crearOActualizarAlmacen(db, req.user.id, ingredientes); // Utilizar la función para crear o actualizar el almacén
+    const ingredientesTraducidos = ingredientes.map(ing => ({
+      nombre: traducirIngredienteAIngles(ing.nombre),  // Traducir el ingrediente a inglés
+      cantidad: convertirMedida(ing.cantidad, ing.unidad), // Convertir la cantidad a gramos o mililitros
+      fechaIngreso: new Date(),
+      perecedero: ing.perecedero || false
+    }));
+
+    await crearOActualizarAlmacen(db, req.user.id, ingredientesTraducidos); // Usar los ingredientes traducidos
     res.status(200).json({ message: 'Alimentos registrados o actualizados en el almacén' });
   } catch (error) {
     console.error('Error al registrar alimentos:', error);
@@ -484,23 +551,7 @@ app.post('/almacen/registro', authenticateToken, async (req, res) => {
 //============================================PREPARAR RECETA====================================
 //================================================================================================
 
-// Función para obtener detalles de la receta desde Spoonacular
-async function obtenerRecetaDeSpoonacular(recipeId) {
-  try {
-    const response = await axios.get(`https://api.spoonacular.com/recipes/${recipeId}/information`, {
-      params: {
-        apiKey: process.env.SPOONACULAR_API_KEY
-      }
-    });
-
-    const receta = response.data;
-    return receta;
-  } catch (error) {
-    throw new Error('Error al obtener la receta de Spoonacular: ' + error.message);
-  }
-}
-
-// Obtener receta de Spoonacular y descontar ingredientes del almacén
+// Descontar ingredientes del almacén al preparar receta desde Spoonacular
 app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => {
   const { recipeId } = req.body;  // El ID de la receta de Spoonacular que el usuario desea preparar
 
@@ -519,27 +570,40 @@ app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => 
       return res.status(404).json({ message: 'Almacén no encontrado' });
     }
 
-    // Recorrer los ingredientes de la receta y verificar si están en el almacén del usuario
-    let faltanIngredientes = false;
+    // Mapa de ingredientes que faltan
+    let faltanIngredientes = [];
 
-    ingredientesReceta.forEach(ingredienteReceta => {
-      const ingredienteEnAlmacen = almacen.ingredientes.find(item => item.nombre === ingredienteReceta.name.toLowerCase());
+    // Recorrer los ingredientes de la receta y verificar si están en el almacén del usuario
+    for (const ingredienteReceta of ingredientesReceta) {
+      // Traducir el nombre del ingrediente de la receta al español usando ingredientes.json
+      const nombreTraducido = convertirIngredienteAEspanol(ingredienteReceta.name.toLowerCase());
+
+      // Buscar el ingrediente en el almacén
+      const ingredienteEnAlmacen = almacen.ingredientes.find(item => item.nombre === nombreTraducido);
 
       // Convertir la cantidad del ingrediente de la receta a gramos usando la unidad de Spoonacular
       const cantidadEnGramos = convertirMedida(ingredienteReceta.amount, ingredienteReceta.unit);
 
+      console.log(`Ingrediente de la receta: ${JSON.stringify(ingredienteReceta)}`);
+      console.log(`Ingrediente traducido: ${nombreTraducido}`);
+      console.log(`Ingrediente en almacén: ${JSON.stringify(ingredienteEnAlmacen)}`);
+      console.log(`Cantidad necesaria (gramos): ${cantidadEnGramos}`);
+
       if (!ingredienteEnAlmacen || ingredienteEnAlmacen.cantidad < cantidadEnGramos) {
-        faltanIngredientes = true;
-        return res.status(400).json({
-          message: `No tienes suficiente ${ingredienteReceta.name} en tu almacén o no tienes este ingrediente.`
-        });
+        // Si el ingrediente no está o no hay suficiente cantidad, agregarlo a la lista de faltantes
+        faltanIngredientes.push(ingredienteReceta.name);
+      } else {
+        // Descontar la cantidad utilizada de los ingredientes
+        ingredienteEnAlmacen.cantidad -= cantidadEnGramos;
+        console.log(`Cantidad actualizada en almacén para ${nombreTraducido}: ${ingredienteEnAlmacen.cantidad}`);
       }
+    }
 
-      // Descontar la cantidad utilizada de los ingredientes
-      ingredienteEnAlmacen.cantidad -= cantidadEnGramos;
-    });
-
-    if (faltanIngredientes) return; // Ya se envió el error, no seguir
+    if (faltanIngredientes.length > 0) {
+      return res.status(400).json({
+        message: `No tienes suficiente de los siguientes ingredientes: ${faltanIngredientes.join(', ')}.`
+      });
+    }
 
     // Actualizar el almacén del usuario con los ingredientes descontados
     await db.collection('almacen').updateOne(
@@ -547,12 +611,13 @@ app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => 
       { $set: { ingredientes: almacen.ingredientes } }
     );
 
+    console.log("Ingredientes descontados correctamente.");
     res.status(200).json({ message: 'Ingredientes descontados del almacén al preparar la receta' });
   } catch (error) {
-    res.status(500).json({ error: 'Error al preparar la receta de Spoonacular: ' + error.message });
+    console.error(`Error al preparar la receta: ${error.message}`);
+    res.status(500).json({ error: `Error al preparar la receta de Spoonacular: ${error.message}` });
   }
 });
-
 
 //============================================DESPERDICIO DE ALIMENTOS=============================================
 //Funcion para revisar desperdicio de alimentos en almacen
