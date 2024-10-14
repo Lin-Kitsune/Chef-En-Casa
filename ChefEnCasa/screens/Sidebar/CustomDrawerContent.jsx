@@ -31,8 +31,8 @@ const CustomDrawerContent = (props) => {
 
           {/* Enlaces del Drawer */}
           <TouchableOpacity 
-            style={[styles.drawerItem, isActive('News') ? styles.activeItem : null]} 
-            onPress={() => navigation.navigate('News')}
+            style={[styles.drawerItem, isActive('NewsScreen') ? styles.activeItem : null]} 
+            onPress={() => navigation.navigate('NewsStack')} // Cambia a "NewsStack" si es así como lo has definido en el Drawer
           >
             <Icon name="newspaper-o" size={24} color={isActive('News') ? "#4CAF50" : "#888"} />
             <Text style={[styles.drawerText, isActive('News') ? styles.activeText : null]}>
