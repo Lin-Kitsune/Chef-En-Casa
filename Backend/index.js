@@ -530,6 +530,7 @@ app.get('/almacen', authenticateToken, async (req, res) => {
   }
 });
 
+// Agregar ingredientes al almacen
 app.post('/almacen/registro', authenticateToken, async (req, res) => {
   const { ingredientes } = req.body;
 
@@ -547,6 +548,90 @@ app.post('/almacen/registro', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error al registrar alimentos:', error);
     res.status(500).json({ error: 'Error al registrar alimentos' });
+  }
+});
+
+// Eliminar un ingrediente completo del almacén
+app.delete('/almacen/eliminar', authenticateToken, async (req, res) => {
+  const { nombreIngrediente } = req.body; // El nombre del ingrediente que se quiere eliminar
+
+  if (!nombreIngrediente) {
+    return res.status(400).json({ message: 'Debe proporcionar el nombre del ingrediente' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Buscar y eliminar el ingrediente del almacén del usuario
+    const result = await db.collection('almacen').updateOne(
+      { usuarioId },
+      { $pull: { ingredientes: { nombre: nombreIngrediente.toLowerCase() } } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Ingrediente no encontrado en el almacén' });
+    }
+
+    res.status(200).json({ message: `Ingrediente ${nombreIngrediente} eliminado correctamente` });
+  } catch (error) {
+    console.error('Error al eliminar el ingrediente:', error.message);
+    res.status(500).json({ error: 'Error al eliminar el ingrediente del almacén' });
+  }
+});
+
+// Reducir la cantidad de un ingrediente en el almacén
+app.put('/almacen/reducir', authenticateToken, async (req, res) => {
+  const { nombreIngrediente, cantidadReducir } = req.body; // El nombre del ingrediente y la cantidad a reducir
+
+  if (!nombreIngrediente || !cantidadReducir) {
+    return res.status(400).json({ message: 'Debe proporcionar el nombre del ingrediente y la cantidad a reducir' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Buscar el ingrediente en el almacén del usuario
+    const almacen = await db.collection('almacen').findOne({ usuarioId });
+    if (!almacen) {
+      return res.status(404).json({ message: 'Almacén no encontrado' });
+    }
+
+    // Buscar el ingrediente en el almacén del usuario
+    const ingrediente = almacen.ingredientes.find(item => item.nombre === nombreIngrediente.toLowerCase());
+
+    if (!ingrediente) {
+      return res.status(404).json({ message: `Ingrediente ${nombreIngrediente} no encontrado en el almacén` });
+    }
+
+    // Verificar si se puede reducir la cantidad
+    if (ingrediente.cantidad < cantidadReducir) {
+      return res.status(400).json({ message: 'La cantidad a reducir es mayor que la cantidad disponible' });
+    }
+
+    // Reducir la cantidad del ingrediente
+    ingrediente.cantidad -= cantidadReducir;
+
+    // Si la cantidad llega a 0, eliminar el ingrediente del almacén
+    if (ingrediente.cantidad === 0) {
+      await db.collection('almacen').updateOne(
+        { usuarioId },
+        { $pull: { ingredientes: { nombre: nombreIngrediente.toLowerCase() } } }
+      );
+      return res.status(200).json({ message: `Ingrediente ${nombreIngrediente} eliminado ya que llegó a 0` });
+    } else {
+      // Actualizar la cantidad del ingrediente en el almacén
+      await db.collection('almacen').updateOne(
+        { usuarioId, 'ingredientes.nombre': nombreIngrediente.toLowerCase() },
+        { $set: { 'ingredientes.$.cantidad': ingrediente.cantidad } }
+      );
+    }
+
+    res.status(200).json({ message: `Cantidad de ${nombreIngrediente} reducida correctamente` });
+  } catch (error) {
+    console.error('Error al reducir la cantidad del ingrediente:', error.message);
+    res.status(500).json({ error: 'Error al reducir la cantidad del ingrediente' });
   }
 });
 
