@@ -779,7 +779,9 @@ app.get('/desperdicio-semanal', authenticateToken, async (req, res) => {
   }
 });
 */
-// Noticias de comida
+
+
+//=============================================NOTICIAS DE COMIDA=======================================
 // Ruta para obtener noticias
 app.get('/noticias', async (req, res) => {
   try {
@@ -811,5 +813,161 @@ app.get('/notificaciones', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error al obtener notificaciones:', error.message);
     res.status(500).json({ error: 'Error al obtener notificaciones' });
+  }
+});
+
+//=====================================VALORAR RECETA==========================================
+//==============================================================================================
+app.post('/receta/valorar', authenticateToken, async (req, res) => {
+  const { recipeId, valoracion } = req.body;
+
+  // Verificar que la valoración sea un número entero entre 1 y 5
+  if (!recipeId || !Number.isInteger(valoracion) || valoracion < 1 || valoracion > 5) {
+    return res.status(400).json({ message: 'La valoración debe estar entre 1 y 5 y debe ser un número entero' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Guardar la valoración del usuario para la receta
+    await db.collection('valoraciones').updateOne(
+      { usuarioId, recipeId },
+      { $set: { valoracion } },
+      { upsert: true }
+    );
+
+    res.status(200).json({ message: 'Receta valorada exitosamente' });
+  } catch (error) {
+    console.error('Error al valorar receta:', error.message);
+    res.status(500).json({ message: 'Error al valorar la receta' });
+  }
+});
+
+//==============================GUARDAR/ELIMINAR RECETA=======================================
+//============================================================================================
+app.post('/recetas/guardar', authenticateToken, async (req, res) => {
+  const { recipeId } = req.body;
+
+  try {
+    const db = await connectToDatabase();
+
+    // Obtener la receta desde Spoonacular
+    const receta = await obtenerRecetaDeSpoonacular(recipeId);
+
+    if (!receta) {
+      return res.status(404).json({ message: 'Receta no encontrada' });
+    }
+
+    // Traducir el título y los ingredientes
+    const tituloTraducido = await translateText(receta.title, 'es');
+    const ingredientesTraducidos = await Promise.all(
+      receta.extendedIngredients.map(async (ingrediente) => {
+        const nombreTraducido = await translateText(ingrediente.name, 'es');
+        return { ...ingrediente, name: nombreTraducido }; // Guardar el ingrediente traducido
+      })
+    );
+
+    // Preparar el objeto receta traducido
+    const recetaGuardada = {
+      recipeId: receta.id,
+      title: tituloTraducido,
+      sourceUrl: receta.sourceUrl,
+      ingredients: ingredientesTraducidos,
+      instructions: receta.instructions,
+      readyInMinutes: receta.readyInMinutes,
+      servings: receta.servings,
+    };
+
+    // Guardar la receta en la colección de recetas guardadas
+    await db.collection('recetasGuardadas').insertOne({
+      usuarioId: new ObjectId(req.user.id),
+      receta: recetaGuardada,
+    });
+
+    res.status(200).json({ message: 'Receta guardada exitosamente en español', receta: recetaGuardada });
+  } catch (error) {
+    console.error('Error al guardar la receta:', error.message);
+    res.status(500).json({ message: 'Error al guardar la receta' });
+  }
+});
+
+//VER RECETAS GUARDADAS 
+// Ruta para obtener las recetas guardadas del usuario (Paginacion para mejorar rendimiento)
+app.get('/recetas/guardadas', authenticateToken, async (req, res) => {
+  const page = parseInt(req.query.page) || 1;  // Número de página (por defecto 1)
+  const limit = parseInt(req.query.limit) || 10;  // Número de recetas por página (por defecto 10)
+
+  try {
+    const db = await connectToDatabase();
+
+    const recetasGuardadas = await db.collection('recetasGuardadas')
+      .find({ usuarioId: new ObjectId(req.user.id) })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray();
+
+    if (!recetasGuardadas || recetasGuardadas.length === 0) {
+      return res.status(404).json({ message: 'No tienes recetas guardadas' });
+    }
+
+    res.status(200).json({ recetas: recetasGuardadas });
+  } catch (error) {
+    console.error('Error al obtener las recetas guardadas:', error.message);
+    res.status(500).json({ message: 'Error al obtener las recetas guardadas' });
+  }
+});
+
+// ELIMINAR RECETA GUARDADA
+app.delete('/receta/eliminar-guardada', authenticateToken, async (req, res) => {
+  const { recipeId } = req.body;
+
+  if (!recipeId) {
+    return res.status(400).json({ message: 'Se requiere un ID de receta' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Asegúrate de comparar `recipeId` como número.
+    const result = await db.collection('recetasGuardadas').deleteOne({
+      usuarioId: usuarioId,
+      'receta.recipeId': Number(recipeId) // Convertir a número para la comparación
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Receta no encontrada en la lista de guardadas' });
+    }
+
+    res.status(200).json({ message: 'Receta eliminada exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar receta guardada:', error.message);
+    res.status(500).json({ message: 'Error al eliminar la receta guardada' });
+  }
+});
+
+//=====================================COMPARTIR RECETA========================================
+//==============================================================================================
+app.get('/receta/compartir/:id', authenticateToken, async (req, res) => {
+  const recipeId = req.params.id;
+
+  try {
+    const db = await connectToDatabase();
+    const receta = await obtenerRecetaDeSpoonacular(recipeId);
+
+    if (!receta) {
+      return res.status(404).json({ message: 'Receta no encontrada' });
+    }
+
+    // Traducir el título de la receta al español usando la API de Google Translate
+    const tituloTraducido = await translateText(receta.title, 'es');
+
+    const link = `https://api.whatsapp.com/send?text=¡Mira esta receta increíble! ${tituloTraducido} - ${receta.sourceUrl}`;
+    
+    res.status(200).json({ message: 'Enlace generado exitosamente', link });
+  } catch (error) {
+    console.error('Error al generar el enlace para compartir:', error.message);
+    res.status(500).json({ message: 'Error al generar el enlace para compartir' });
   }
 });
