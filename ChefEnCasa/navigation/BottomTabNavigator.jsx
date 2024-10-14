@@ -14,7 +14,9 @@ const BottomTabNavigator = () => {
   return (
     <Tab.Navigator
     initialRouteName='Home'
-      screenOptions={({ route }) => ({
+      screenOptions={(
+        
+        { route }) => ({
         tabBarActiveTintColor: '#ffffff',
         tabBarInactiveTintColor: '#cfcfcf',
         tabBarStyle: {
@@ -30,6 +32,7 @@ const BottomTabNavigator = () => {
           paddingBottom: 5,
           paddingTop: 5,
         },
+        headerShown: false,
         tabBarIcon: ({ color }) => {
           let iconName;
           if (route.name === 'Buscar') {
@@ -50,7 +53,7 @@ const BottomTabNavigator = () => {
             </View>
           );
         },
-        tabBarLabel: () => null,
+        tabBarLabel: route.name === 'Home' ? () => null : undefined,  // Ocultar el título de Home
       })}
     >
       <Tab.Screen name="Buscar" component={BuscadorNavigator} />
