@@ -17,6 +17,8 @@ const { ObjectId } = require('mongodb');
 const fs = require('fs'); // Importar el módulo de sistema de archivos (fs)
 const Almacen = require('./models/Almacen');
 const { crearOActualizarAlmacen } = require('./models/Almacen'); // Importar las funciones actualizadas de Almacen.js
+const { getNoticias } = require('./models/newsService'); 
+require('dotenv').config();
 
 
 // Cargar el archivo JSON de ingredientes
@@ -621,26 +623,26 @@ app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => 
 
 //============================================DESPERDICIO DE ALIMENTOS=============================================
 //Funcion para revisar desperdicio de alimentos en almacen
-const cron = require('node-cron');
+// const cron = require('node-cron');
 
-// Tarea programada para revisar cada semana los alimentos perecederos
-cron.schedule('0 0 * * 0', async () => {
-  try {
-    const db = await connectToDatabase(); // Conectar a la base de datos
-    const todosLosAlmacenes = await db.collection('almacen').find({}).toArray();
+// // Tarea programada para revisar cada semana los alimentos perecederos
+// cron.schedule('0 0 * * 0', async () => {
+//   try {
+//     const db = await connectToDatabase(); // Conectar a la base de datos
+//     const todosLosAlmacenes = await db.collection('almacen').find({}).toArray();
     
-    todosLosAlmacenes.forEach(almacen => {
-      almacen.ingredientes.forEach(ingrediente => {
-        if (ingrediente.perecedero && new Date() - new Date(ingrediente.fechaIngreso) > 7 * 24 * 60 * 60 * 1000) {
-          // Registrar desperdicio si no fue consumido en una semana
-          console.log(`Ingrediente ${ingrediente.nombre} se considera desperdicio`);
-        }
-      });
-    });
-  } catch (error) {
-    console.error('Error al procesar el desperdicio:', error);
-  }
-});
+//     todosLosAlmacenes.forEach(almacen => {
+//       almacen.ingredientes.forEach(ingrediente => {
+//         if (ingrediente.perecedero && new Date() - new Date(ingrediente.fechaIngreso) > 7 * 24 * 60 * 60 * 1000) {
+//           // Registrar desperdicio si no fue consumido en una semana
+//           console.log(`Ingrediente ${ingrediente.nombre} se considera desperdicio`);
+//         }
+//       });
+//     });
+//   } catch (error) {
+//     console.error('Error al procesar el desperdicio:', error);
+//   }
+// });
 
 //============================================TESTING DESPERDICIO DE ALIMENTOS=============================================
 app.get('/test-desperdicio', async (req, res) => {
@@ -692,3 +694,13 @@ app.get('/desperdicio-semanal', authenticateToken, async (req, res) => {
   }
 });
 */
+// Noticias de comida
+// Ruta para obtener noticias
+app.get('/noticias', async (req, res) => {
+  try {
+    const noticias = await getNoticias();
+    res.json(noticias);
+  } catch (error) {
+    res.status(500).send('Error al obtener noticias');
+  }
+});
