@@ -15,7 +15,7 @@ const LoginScreen = ({ navigation, onLoginSuccess }) => {
       const response = await login(email, password);
       if (response.token) {
         await AsyncStorage.setItem('userToken', response.token);
-        onLoginSuccess();
+        onLoginSuccess(); // Asegúrate de que esto es una función y está bien pasada desde App.js
       } else {
         setErrorMessage('Error en el login');
       }
@@ -30,7 +30,9 @@ const LoginScreen = ({ navigation, onLoginSuccess }) => {
         <Image source={require('../../assets/images/logo.png')} style={styles.logo} />
         <Text style={styles.title}>INICIAR SESIÓN</Text>
       </View>
+
       {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+
       <Text style={styles.label}>Correo Electrónico</Text>
       <TextInput
         style={styles.input}
@@ -38,6 +40,7 @@ const LoginScreen = ({ navigation, onLoginSuccess }) => {
         value={email}
         onChangeText={setEmail}
       />
+
       <Text style={styles.label}>Contraseña</Text>
       <TextInput
         style={styles.input}
