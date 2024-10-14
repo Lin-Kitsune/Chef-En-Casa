@@ -9,7 +9,8 @@ const CustomDrawerContent = (props) => {
 
   // Función para verificar si un ítem está activo
   const isActive = (routeName) => {
-    return state?.routeNames[state?.index] === routeName;
+    const currentRoute = state?.routeNames[state?.index];
+    return currentRoute === routeName;
   };
 
   return (
@@ -32,10 +33,10 @@ const CustomDrawerContent = (props) => {
           {/* Enlaces del Drawer */}
           <TouchableOpacity 
             style={[styles.drawerItem, isActive('NewsScreen') ? styles.activeItem : null]} 
-            onPress={() => navigation.navigate('NewsStack')} // Cambia a "NewsStack" si es así como lo has definido en el Drawer
+            onPress={() => navigation.navigate('NewsStack')}
           >
-            <Icon name="newspaper-o" size={24} color={isActive('News') ? "#4CAF50" : "#888"} />
-            <Text style={[styles.drawerText, isActive('News') ? styles.activeText : null]}>
+            <Icon name="newspaper-o" size={24} color={isActive('NewsScreen') ? "#FFF" : "#619537"} />
+            <Text style={[styles.drawerText, isActive('NewsScreen') ? styles.activeText : null]}>
               Noticias
             </Text> 
           </TouchableOpacity>
@@ -44,13 +45,13 @@ const CustomDrawerContent = (props) => {
             style={[styles.drawerItem, isActive('Points') ? styles.activeItem : null]} 
             onPress={() => navigation.navigate('Points')}
           >
-            <Icon name="star" size={24} color={isActive('Points') ? "#4CAF50" : "#888"} />
+            <Icon name="star" size={24} color={isActive('Points') ? "#FFF" : "#EFB810"} />
             <Text style={[styles.drawerText, isActive('Points') ? styles.activeText : null]}>
               Puntos
             </Text> 
           </TouchableOpacity>
         </View>
-        {/* Botón de cerrar sesión en la parte inferior con una línea divisoria */}
+        {/* Botón de cerrar sesión en la parte inferior */}
         <View style={styles.logoutContainer}>
           <TouchableOpacity style={styles.logout} onPress={() => {}}>
             <Icon name="sign-out" size={24} color="#888" />
