@@ -704,3 +704,27 @@ app.get('/noticias', async (req, res) => {
     res.status(500).send('Error al obtener noticias');
   }
 });
+
+//============================================NOTIFICACIONES=============================================
+//=======================================================================================================
+// Se envia una notificacion al usuario con los nombres de los ingredientes que se han agotado en su almacen 
+app.get('/notificaciones', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+    const almacen = await db.collection('almacen').findOne({ usuarioId });
+    
+    const ingredientesAgotados = almacen.ingredientes
+      .filter(ingrediente => ingrediente.cantidad === 0)
+      .map(ingrediente => ingrediente.nombre);  // Solo nombres
+
+    if (ingredientesAgotados.length > 0) {
+      return res.status(200).json({ message: 'Tienes ingredientes agotados', ingredientesAgotados });
+    } else {
+      return res.status(200).json({ message: 'No tienes ingredientes agotados' });
+    }
+  } catch (error) {
+    console.error('Error al obtener notificaciones:', error.message);
+    res.status(500).json({ error: 'Error al obtener notificaciones' });
+  }
+});
