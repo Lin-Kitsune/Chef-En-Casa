@@ -8,6 +8,7 @@ const getNoticias = async () => {
         q: 'comida OR cocina', // Búsqueda en español
         language: 'es', // Filtrar por noticias en español
         country: 'cl,es,mx,ar', // Puedes elegir países hispanohablantes
+        category: 'food',
       },
     });
 
