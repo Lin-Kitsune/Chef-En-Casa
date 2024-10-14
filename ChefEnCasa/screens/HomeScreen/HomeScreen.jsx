@@ -12,7 +12,7 @@ const HomeScreen = () => {
       {/* Encabezado */}
       <View style={styles.header}>
         {/* Icono de menú */}
-        <TouchableOpacity style={styles.menuButton}>
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()}>
           <Icon name="bars" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.userInfoContainer}>
