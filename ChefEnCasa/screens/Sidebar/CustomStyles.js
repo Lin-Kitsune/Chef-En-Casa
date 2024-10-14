@@ -14,44 +14,47 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   appIcon: {
-    width: 70,  // Ajusta el tamaño del icono según lo necesario
+    width: 70,
     height: 70,
-    marginRight: 3,  // Espacio entre el icono y el texto
+    marginRight: 3,
   },
   logoText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#619537', // Color verde para el texto
+    color: '#619537',
   },
   divider: {
     height: 1,
-    backgroundColor: '#E0E0E0',  // Línea de separación debajo del logo
+    backgroundColor: '#E0E0E0',
     marginVertical: 5,
   },
   drawerItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 3,
+    paddingHorizontal: 10,
     borderRadius: 8,
+    marginBottom: 10, // Para darle más separación entre elementos
   },
   drawerText: {
     fontSize: 16,
-    color: '#888', // Texto gris por defecto
+    color: '#888',
     paddingHorizontal: 10,
   },
   activeItem: {
-    backgroundColor: '#E8F5E9', // Fondo verde claro para el item activo
+    backgroundColor: '#619537', // Fondo verde para el item activo
+    borderRadius: 10,
   },
   activeText: {
-    color: '#619537', // Texto verde para el item activo
+    color: '#FFF', // Texto blanco para el item activo
+    fontWeight: 'bold',
   },
   contentContainer: {
-    flexGrow: 1,  // Esto permite que el contenido crezca y empuje el botón de cerrar sesión hacia abajo
+    flexGrow: 1,
   },
   logoutContainer: {
     borderTopColor: '#E0E0E0',
-    paddingTop: 570,
+    paddingTop: 560,
   },
   logout: {
     flexDirection: 'row',
