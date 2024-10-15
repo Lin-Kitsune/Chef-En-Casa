@@ -477,7 +477,11 @@ const conversiones = {
   '""' : 1,          // 1 " = 0.5 gramos
   "strip": 5,        // 1 strip = 5 gramos
   "large": 100,       // 1 large = 100 gramos
-  "unidad": 100       // 1 unidad = 50 gramos
+  "unidad": 100,       // 1 unidad = 50 gramos
+  "c": 240,            // 1 c = 240 gramos
+  "t": 50,             // 1 T = 50 gramos
+  "small": 100,       // 1 small = 100 gramos
+  "small pinch": 0.5  // 1 small pinch = 0.5 gramos
 };
 
 // Función para convertir una cantidad a gramos o mililitros
@@ -635,21 +639,15 @@ app.put('/almacen/reducir', authenticateToken, async (req, res) => {
   }
 });
 
-//============================================PREPARAR RECETA====================================
-//================================================================================================
-
-// Descontar ingredientes del almacén al preparar receta desde Spoonacular
+// ============================================ PREPARAR RECETA ====================================
+// Descontar ingredientes del almacén al preparar receta desde Spoonacular y generar una única lista de compras
 app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => {
-  const { recipeId } = req.body;  // El ID de la receta de Spoonacular que el usuario desea preparar
+  const { recipeId } = req.body;
 
   try {
-    const db = await connectToDatabase(); // Conectar a la base de datos
-
-    // Obtener los ingredientes de la receta desde Spoonacular
+    const db = await connectToDatabase();
     const receta = await obtenerRecetaDeSpoonacular(recipeId);
     const ingredientesReceta = receta.extendedIngredients;
-
-    // Obtener el almacén del usuario
     const usuarioId = new ObjectId(req.user.id);
     const almacen = await db.collection('almacen').findOne({ usuarioId });
 
@@ -657,52 +655,330 @@ app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => 
       return res.status(404).json({ message: 'Almacén no encontrado' });
     }
 
-    // Mapa de ingredientes que faltan
     let faltanIngredientes = [];
 
-    // Recorrer los ingredientes de la receta y verificar si están en el almacén del usuario
+    // Recorrer los ingredientes de la receta
     for (const ingredienteReceta of ingredientesReceta) {
-      // Traducir el nombre del ingrediente de la receta al español usando ingredientes.json
       const nombreTraducido = convertirIngredienteAEspanol(ingredienteReceta.name.toLowerCase());
-
-      // Buscar el ingrediente en el almacén
       const ingredienteEnAlmacen = almacen.ingredientes.find(item => item.nombre === nombreTraducido);
-
-      // Convertir la cantidad del ingrediente de la receta a gramos usando la unidad de Spoonacular
       const cantidadEnGramos = convertirMedida(ingredienteReceta.amount, ingredienteReceta.unit);
 
-      console.log(`Ingrediente de la receta: ${JSON.stringify(ingredienteReceta)}`);
-      console.log(`Ingrediente traducido: ${nombreTraducido}`);
-      console.log(`Ingrediente en almacén: ${JSON.stringify(ingredienteEnAlmacen)}`);
-      console.log(`Cantidad necesaria (gramos): ${cantidadEnGramos}`);
-
       if (!ingredienteEnAlmacen || ingredienteEnAlmacen.cantidad < cantidadEnGramos) {
-        // Si el ingrediente no está o no hay suficiente cantidad, agregarlo a la lista de faltantes
-        faltanIngredientes.push(ingredienteReceta.name);
-      } else {
-        // Descontar la cantidad utilizada de los ingredientes
-        ingredienteEnAlmacen.cantidad -= cantidadEnGramos;
-        console.log(`Cantidad actualizada en almacén para ${nombreTraducido}: ${ingredienteEnAlmacen.cantidad}`);
+        // Si el ingrediente falta o no hay suficiente cantidad, agregarlo a la lista de compras
+        const existente = faltanIngredientes.find(item => item.nombre === nombreTraducido);
+        if (existente) {
+          existente.cantidad += cantidadEnGramos; // Si ya existe el ingrediente en la lista, sumar la cantidad
+        } else {
+          faltanIngredientes.push({
+            nombre: nombreTraducido,
+            cantidad: cantidadEnGramos
+          });
+        }
       }
     }
 
     if (faltanIngredientes.length > 0) {
+      // Verificar si ya hay una lista de compras activa
+      const listaDeCompras = await db.collection('listasDeCompras').findOne({ usuarioId, completada: false });
+
+      if (listaDeCompras) {
+        // Si ya hay una lista de compras activa, agregar los ingredientes faltantes a la lista existente
+        for (const ingrediente of faltanIngredientes) {
+          const existente = listaDeCompras.ingredientes.find(item => item.nombre === ingrediente.nombre);
+          if (existente) {
+            existente.cantidad += ingrediente.cantidad; // Sumar la cantidad a los ingredientes ya existentes
+          } else {
+            listaDeCompras.ingredientes.push(ingrediente); // Agregar nuevos ingredientes faltantes
+          }
+        }
+
+        // Actualizar la lista de compras con los nuevos ingredientes
+        await db.collection('listasDeCompras').updateOne(
+          { usuarioId, completada: false },
+          { $set: { ingredientes: listaDeCompras.ingredientes } }
+        );
+      } else {
+        // Si no hay lista de compras activa, crear una nueva
+        await db.collection('listasDeCompras').insertOne({
+          usuarioId,
+          ingredientes: faltanIngredientes,
+          completada: false
+        });
+      }
+
       return res.status(400).json({
-        message: `No tienes suficiente de los siguientes ingredientes: ${faltanIngredientes.join(', ')}.`
+        message: 'No tienes suficientes ingredientes. Se ha actualizado o generado una lista de compras.',
+        faltanIngredientes
       });
     }
 
-    // Actualizar el almacén del usuario con los ingredientes descontados
-    await db.collection('almacen').updateOne(
+    res.status(200).json({ message: 'Ingredientes descontados correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: `Error al preparar la receta: ${error.message}` });
+  }
+});
+
+//============================================LISTA DE COMPRAS====================================
+// Descontar ingredientes y generar lista de compras
+app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => {
+  const { recipeId } = req.body;
+
+  try {
+    const db = await connectToDatabase();
+
+    const receta = await obtenerRecetaDeSpoonacular(recipeId);
+    const ingredientesReceta = receta.extendedIngredients;
+    const usuarioId = new ObjectId(req.user.id);
+    const almacen = await db.collection('almacen').findOne({ usuarioId });
+
+    if (!almacen) {
+      return res.status(404).json({ message: 'Almacén no encontrado' });
+    }
+
+    let faltanIngredientes = [];
+    
+    for (const ingredienteReceta of ingredientesReceta) {
+      const nombreTraducido = convertirIngredienteAEspanol(ingredienteReceta.name.toLowerCase());
+      const ingredienteEnAlmacen = almacen.ingredientes.find(item => item.nombre === nombreTraducido);
+      const cantidadEnGramos = convertirMedida(ingredienteReceta.amount, ingredienteReceta.unit);
+
+      if (!ingredienteEnAlmacen || ingredienteEnAlmacen.cantidad < cantidadEnGramos) {
+        faltanIngredientes.push({
+          nombre: nombreTraducido,
+          cantidad: cantidadEnGramos
+        });
+      }
+    }
+
+    if (faltanIngredientes.length > 0) {
+      await db.collection('listasDeCompras').updateOne(
+        { usuarioId },
+        { $set: { ingredientes: faltanIngredientes, completada: false } },
+        { upsert: true }
+      );
+
+      return res.status(400).json({
+        message: 'No tienes suficientes ingredientes. Se ha generado una lista de compras.',
+        faltanIngredientes
+      });
+    }
+
+    res.status(200).json({ message: 'Ingredientes descontados correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: `Error al preparar la receta: ${error.message}` });
+  }
+});
+
+//VER LISTA DE COMPRAS
+app.get('/lista-de-compras', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+    const listaDeCompras = await db.collection('listasDeCompras').findOne({ usuarioId, completada: false });
+
+    if (!listaDeCompras) {
+      return res.status(404).json({ message: 'No tienes lista de compras' });
+    }
+
+    res.status(200).json(listaDeCompras);
+  } catch (error) {
+    res.status(500).json({ error: `Error al obtener la lista de compras: ${error.message}` });
+  }
+});
+
+// Marcar como comprada la lista o eliminarla
+app.put('/lista-de-compras/marcar-comprada', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+    
+    await db.collection('listasDeCompras').updateOne(
       { usuarioId },
-      { $set: { ingredientes: almacen.ingredientes } }
+      { $set: { completada: true } }
     );
 
-    console.log("Ingredientes descontados correctamente.");
-    res.status(200).json({ message: 'Ingredientes descontados del almacén al preparar la receta' });
+    res.status(200).json({ message: 'Lista de compras marcada como comprada' });
   } catch (error) {
-    console.error(`Error al preparar la receta: ${error.message}`);
-    res.status(500).json({ error: `Error al preparar la receta de Spoonacular: ${error.message}` });
+    res.status(500).json({ error: `Error al marcar la lista de compras como comprada: ${error.message}` });
+  }
+});
+
+// Eliminar la lista de compras
+app.delete('/lista-de-compras/eliminar', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    await db.collection('listasDeCompras').deleteOne({ usuarioId });
+
+    res.status(200).json({ message: 'Lista de compras eliminada exitosamente' });
+  } catch (error) {
+    res.status(500).json({ error: `Error al eliminar la lista de compras: ${error.message}` });
+  }
+});
+
+// Ruta para actualizar la cantidad de un ingrediente en la lista de compras
+app.put('/lista-de-compras/actualizar-cantidad', authenticateToken, async (req, res) => {
+  const { nombreIngrediente, nuevaCantidad } = req.body;
+
+  if (!nombreIngrediente || !nuevaCantidad || nuevaCantidad <= 0) {
+    return res.status(400).json({ message: 'Debe proporcionar un nombre de ingrediente y una cantidad válida' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Actualizar la cantidad del ingrediente en la lista de compras
+    await db.collection('listasDeCompras').updateOne(
+      { usuarioId, 'ingredientes.nombre': nombreIngrediente },
+      { $set: { 'ingredientes.$.cantidad': nuevaCantidad } }
+    );
+
+    res.status(200).json({ message: 'Cantidad del ingrediente actualizada' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al actualizar la cantidad del ingrediente', error: error.message });
+  }
+});
+
+// Ruta para marcar ingredientes como comprados o no comprados
+app.put('/lista-de-compras/marcar-comprado', authenticateToken, async (req, res) => {
+  const { nombreIngrediente, comprado } = req.body;
+
+  if (!nombreIngrediente || comprado === undefined) {
+    return res.status(400).json({ message: 'Debe proporcionar un nombre de ingrediente y si está comprado o no' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Marcar el ingrediente como comprado o no comprado en la lista de compras
+    await db.collection('listasDeCompras').updateOne(
+      { usuarioId, 'ingredientes.nombre': nombreIngrediente },
+      { $set: { 'ingredientes.$.comprado': comprado } }
+    );
+
+    res.status(200).json({ message: 'Estado de compra del ingrediente actualizado' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al actualizar el estado de compra del ingrediente', error: error.message });
+  }
+});
+
+// Ruta para transferir ingredientes comprados al almacén
+app.put('/lista-de-compras/transferir-al-almacen', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Obtener la lista de compras del usuario
+    const listaDeCompras = await db.collection('listasDeCompras').findOne({ usuarioId, completada: false });
+
+    if (!listaDeCompras) {
+      return res.status(404).json({ message: 'No tienes lista de compras activa' });
+    }
+
+    // Filtrar solo los ingredientes marcados como comprados
+    const ingredientesComprados = listaDeCompras.ingredientes.filter(ingrediente => ingrediente.comprado);
+
+    // Transferir los ingredientes al almacén del usuario
+    for (const ingrediente of ingredientesComprados) {
+      const ingredienteEnAlmacen = await db.collection('almacen').findOne({
+        usuarioId,
+        'ingredientes.nombre': ingrediente.nombre
+      });
+
+      if (ingredienteEnAlmacen) {
+        // Si el ingrediente ya está en el almacén, aumentar la cantidad
+        await db.collection('almacen').updateOne(
+          { usuarioId, 'ingredientes.nombre': ingrediente.nombre },
+          { $inc: { 'ingredientes.$.cantidad': ingrediente.cantidad } }
+        );
+      } else {
+        // Si el ingrediente no está en el almacén, agregarlo
+        await db.collection('almacen').updateOne(
+          { usuarioId },
+          { $push: { ingredientes: { nombre: ingrediente.nombre, cantidad: ingrediente.cantidad, perecedero: true } } }
+        );
+      }
+    }
+
+    // Marcar la lista de compras como completada o eliminarla
+    await db.collection('listasDeCompras').deleteOne({ usuarioId });
+
+    res.status(200).json({ message: 'Ingredientes transferidos al almacén y lista de compras eliminada' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al transferir los ingredientes al almacén', error: error.message });
+  }
+});
+
+// Ruta para eliminar un ingrediente específico de la lista de compras
+app.delete('/lista-de-compras/eliminar-ingrediente', authenticateToken, async (req, res) => {
+  const { nombreIngrediente } = req.body;
+
+  if (!nombreIngrediente) {
+    return res.status(400).json({ message: 'Debe proporcionar un nombre de ingrediente' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Eliminar el ingrediente de la lista de compras
+    await db.collection('listasDeCompras').updateOne(
+      { usuarioId },
+      { $pull: { ingredientes: { nombre: nombreIngrediente } } }
+    );
+
+    res.status(200).json({ message: 'Ingrediente eliminado de la lista de compras' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al eliminar el ingrediente de la lista de compras', error: error.message });
+  }
+});
+
+// Marcar todos los ingredientes de la lista de compras como comprados
+app.put('/lista-de-compras/marcar-todo-comprado', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Buscar la lista de compras del usuario
+    const listaDeCompras = await db.collection('listasDeCompras').findOne({ usuarioId, completada: false });
+
+    if (!listaDeCompras) {
+      return res.status(404).json({ message: 'No tienes lista de compras activa' });
+    }
+
+    // Marcar todos los ingredientes como comprados
+    await db.collection('listasDeCompras').updateOne(
+      { usuarioId, completada: false },
+      { $set: { 'ingredientes.$[].comprado': true } } // Actualizar todos los ingredientes a "comprado: true"
+    );
+
+    res.status(200).json({ message: 'Todos los ingredientes marcados como comprados' });
+  } catch (error) {
+    console.error('Error al marcar todos los ingredientes como comprados:', error.message);
+    res.status(500).json({ message: 'Error al marcar los ingredientes como comprados' });
+  }
+});
+
+// Eliminar toda la lista de compras
+app.delete('/lista-de-compras/eliminar-toda', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Eliminar la lista de compras del usuario
+    const result = await db.collection('listasDeCompras').deleteOne({ usuarioId });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'No tienes lista de compras para eliminar' });
+    }
+
+    res.status(200).json({ message: 'Lista de compras eliminada exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar la lista de compras:', error.message);
+    res.status(500).json({ message: 'Error al eliminar la lista de compras' });
   }
 });
 
