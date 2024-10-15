@@ -1247,6 +1247,8 @@ app.get('/receta/compartir/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Error al generar el enlace para compartir' });
   }
 });
+
+//========================================SALUD=============================================
 // Salud
 // Ruta para actualizar los datos de salud del usuario
 app.put('/perfil/health', authenticateToken, async (req, res) => {
