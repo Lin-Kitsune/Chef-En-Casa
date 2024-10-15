@@ -1251,37 +1251,37 @@ app.get('/receta/compartir/:id', authenticateToken, async (req, res) => {
 //========================================SALUD=============================================
 // Salud
 // Ruta para actualizar los datos de salud del usuario
-app.put('/perfil/health', authenticateToken, async (req, res) => {
-  const { weight, height, imc, dietRecommendation } = req.body;
+// app.put('/perfil/health', authenticateToken, async (req, res) => {
+//   const { weight, height, imc, dietRecommendation } = req.body;
 
-  if (!weight || !height || !imc || !dietRecommendation) {
-    return res.status(400).json({ message: 'Todos los campos son obligatorios' });
-  }
+//   if (!weight || !height || !imc || !dietRecommendation) {
+//     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+//   }
 
-  try {
-    // Update the user's health data in MongoDB
-    const result = await usersCollection.updateOne(
-      { _id: new ObjectId(req.user.id) },  // Use the ID from the authenticated user
-      { 
-        $set: { 
-          weight: weight, 
-          height: height, 
-          imc: imc, 
-          dietRecommendation: dietRecommendation 
-        }
-      }
-    );
+//   try {
+//     // Update the user's health data in MongoDB
+//     const result = await usersCollection.updateOne(
+//       { _id: new ObjectId(req.user.id) },  // Use the ID from the authenticated user
+//       { 
+//         $set: { 
+//           weight: weight, 
+//           height: height, 
+//           imc: imc, 
+//           dietRecommendation: dietRecommendation 
+//         }
+//       }
+//     );
 
-    if (result.modifiedCount === 0) {
-      return res.status(404).json({ message: 'Usuario no encontrado o sin cambios' });
-    }
+//     if (result.modifiedCount === 0) {
+//       return res.status(404).json({ message: 'Usuario no encontrado o sin cambios' });
+//     }
 
-    res.status(200).json({ message: 'Datos de salud actualizados' });
-  } catch (error) {
-    console.error('Error al actualizar los datos de salud:', error);
-    res.status(500).json({ message: 'Error al actualizar los datos de salud' });
-  }
-});
+//     res.status(200).json({ message: 'Datos de salud actualizados' });
+//   } catch (error) {
+//     console.error('Error al actualizar los datos de salud:', error);
+//     res.status(500).json({ message: 'Error al actualizar los datos de salud' });
+//   }
+// });
 
 // Salud
 // Ruta para actualizar los datos de salud del usuario
