@@ -1251,6 +1251,40 @@ app.get('/receta/compartir/:id', authenticateToken, async (req, res) => {
 //========================================SALUD=============================================
 // Salud
 // Ruta para actualizar los datos de salud del usuario
+// app.put('/perfil/health', authenticateToken, async (req, res) => {
+//   const { weight, height, imc, dietRecommendation } = req.body;
+
+//   if (!weight || !height || !imc || !dietRecommendation) {
+//     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+//   }
+
+//   try {
+//     // Update the user's health data in MongoDB
+//     const result = await usersCollection.updateOne(
+//       { _id: new ObjectId(req.user.id) },  // Use the ID from the authenticated user
+//       { 
+//         $set: { 
+//           weight: weight, 
+//           height: height, 
+//           imc: imc, 
+//           dietRecommendation: dietRecommendation 
+//         }
+//       }
+//     );
+
+//     if (result.modifiedCount === 0) {
+//       return res.status(404).json({ message: 'Usuario no encontrado o sin cambios' });
+//     }
+
+//     res.status(200).json({ message: 'Datos de salud actualizados' });
+//   } catch (error) {
+//     console.error('Error al actualizar los datos de salud:', error);
+//     res.status(500).json({ message: 'Error al actualizar los datos de salud' });
+//   }
+// });
+
+// Salud
+// Ruta para actualizar los datos de salud del usuario
 app.put('/perfil/health', authenticateToken, async (req, res) => {
   const { weight, height, imc, dietRecommendation } = req.body;
 
@@ -1259,15 +1293,14 @@ app.put('/perfil/health', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Update the user's health data in MongoDB
     const result = await usersCollection.updateOne(
-      { _id: new ObjectId(req.user.id) },  // Use the ID from the authenticated user
+      { _id: new ObjectId(req.user.id) },  // Usar el ID del usuario autenticado
       { 
         $set: { 
-          weight: weight, 
-          height: height, 
-          imc: imc, 
-          dietRecommendation: dietRecommendation 
+          'healthData.weight': weight, 
+          'healthData.height': height, 
+          'healthData.imc': imc, 
+          'healthData.dietRecommendation': dietRecommendation 
         }
       }
     );
@@ -1282,3 +1315,22 @@ app.put('/perfil/health', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Error al actualizar los datos de salud' });
   }
 });
+
+// Ruta protegida para acceder al perfil de usuario solo con token válido
+app.get('/perfil', authenticateToken, async (req, res) => {
+  try {
+    const usuario = await usersCollection.findOne({ _id: req.user.id });
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    res.status(200).json({ 
+      nombre: usuario.nombre,
+      email: usuario.email,
+      healthData: usuario.healthData 
+    });
+  } catch (error) {
+    console.error('Error al obtener el perfil del usuario:', error);
+    res.status(500).json({ message: 'Error al obtener el perfil' });
+  }
+});
+
