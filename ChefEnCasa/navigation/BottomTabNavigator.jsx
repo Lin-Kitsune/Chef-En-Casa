@@ -37,11 +37,11 @@ const BottomTabNavigator = () => {
           let iconName;
           if (route.name === 'Buscar') {
             iconName = 'search';
-          } else if (route.name === 'Marcadores') {
+          } else if (route.name === 'Favoritos') {
             iconName = 'bookmark';
           } else if (route.name === 'Home') {
             iconName = 'home';
-          } else if (route.name === 'Recetas') {
+          } else if (route.name === 'Notificaciones') {
             iconName = 'bell';
           } else if (route.name === 'Perfil') {
             iconName = 'user';
@@ -57,9 +57,9 @@ const BottomTabNavigator = () => {
       })}
     >
       <Tab.Screen name="Buscar" component={BuscadorNavigator} />
-      <Tab.Screen name="Marcadores" component={SavedScreenStackNavigator} />
+      <Tab.Screen name="Favoritos" component={SavedScreenStackNavigator} />
       <Tab.Screen name="Home" component={HomeStackNavigator} />
-      <Tab.Screen name="Recetas" component={HomeScreen} />
+      <Tab.Screen name="Notificaciones" component={HomeScreen} />
       <Tab.Screen name="Perfil" component={ProfileStackNavigator} />
     </Tab.Navigator>
   );

@@ -42,8 +42,8 @@ const CustomDrawerContent = (props) => {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.drawerItem, isActive('Points') ? styles.activeItem : null]} 
-            onPress={() => navigation.navigate('Points')}
+            style={[styles.drawerItem, isActive('PointsStack') ? styles.activeItem : null]} 
+            onPress={() => navigation.navigate('PointsStack')}
           >
             <Icon name="star" size={24} color={isActive('Points') ? "#FFF" : "#EFB810"} />
             <Text style={[styles.drawerText, isActive('Points') ? styles.activeText : null]}>
