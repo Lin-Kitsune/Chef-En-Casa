@@ -167,37 +167,43 @@ app.use((err, req, res, next) => {
   });
 
   // Ruta de registro de usuarios
-  app.post('/register', async (req, res) => {
-    const { nombre, email, password, diet, allergies } = req.body; // Obtener los datos del cuerpo de la solicitud
+app.post('/register', async (req, res) => {
+  const { nombre, email, password, diet, allergies, weight, height, imc, dietRecommendation } = req.body; // Obtener los datos del cuerpo de la solicitud
 
-    if (!nombre || !email || !password) { // Verificar si se envían todos los campos
-      return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  if (!nombre || !email || !password) { // Verificar si se envían todos los campos
+    return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  }
+
+  // Comprobar si el usuario ya existe en la base de datos
+  const usuarioExistente = await usersCollection.findOne({ email });
+  if (usuarioExistente) {
+    return res.status(400).json({ message: 'El usuario ya existe' });
+  }
+
+  // Hashear la contraseña antes de guardarla
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const nuevoUsuario = { 
+    nombre, 
+    email, 
+    password: hashedPassword, 
+    diet: diet || null,  // Si se proporciona, asignar; si no, null
+    allergies: allergies || [],  // Asignar alergias si se proporcionan, o una lista vacía
+    healthData: {                 // Añadir los datos de salud al registrar al usuario
+      weight: weight || null,      // Si no se proporciona, será null
+      height: height || null,
+      imc: imc || null,
+      dietRecommendation: dietRecommendation || 'Sin recomendación' // Por defecto 'Sin recomendación'
     }
+  };
 
-    // Comprobar si el usuario ya existe en la base de datos
-    const usuarioExistente = await usersCollection.findOne({ email });
-    if (usuarioExistente) {
-      return res.status(400).json({ message: 'El usuario ya existe' });
-    }
+  await usersCollection.insertOne(nuevoUsuario); // Insertar el nuevo usuario en la base de datos
 
-    // Hashear la contraseña antes de guardarla
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const nuevoUsuario = { 
-      nombre, 
-      email, 
-      password: hashedPassword, 
-      diet: diet || null,       // Si se proporciona, asignar; si no, null
-      allergies: allergies || [] // Asignar alergias si se proporcionan, o una lista vacía
-    }; // Crear el nuevo usuario con la contraseña hasheada
-
-    await usersCollection.insertOne(nuevoUsuario); // Insertar el nuevo usuario en la base de datos
-
-    // Enviar respuesta sin incluir la contraseña
-    res.status(201).json({ 
-      message: 'Usuario registrado', 
-      usuario: { nombre: nuevoUsuario.nombre, email: nuevoUsuario.email }
-    });
+  // Enviar respuesta sin incluir la contraseña
+  res.status(201).json({ 
+    message: 'Usuario registrado', 
+    usuario: { nombre: nuevoUsuario.nombre, email: nuevoUsuario.email }
   });
+});
 
   // Ruta de login de usuarios
   app.post('/login', async (req, res) => {
@@ -220,7 +226,7 @@ app.use((err, req, res, next) => {
     }
 
     // Generar el token JWT
-    const token = jwt.sign({ id: usuario._id, email: usuario.email }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: usuario._id, email: usuario.email }, JWT_SECRET, { expiresIn: '5h' });
 
     // Enviar el token de respuesta
     res.status(200).json({ message: 'Login exitoso', token });
@@ -981,15 +987,14 @@ app.put('/perfil/health', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Update the user's health data in MongoDB
     const result = await usersCollection.updateOne(
-      { _id: new ObjectId(req.user.id) },  // Use the ID from the authenticated user
+      { _id: new ObjectId(req.user.id) },  // Usar el ID del usuario autenticado
       { 
         $set: { 
-          weight: weight, 
-          height: height, 
-          imc: imc, 
-          dietRecommendation: dietRecommendation 
+          'healthData.weight': weight, 
+          'healthData.height': height, 
+          'healthData.imc': imc, 
+          'healthData.dietRecommendation': dietRecommendation 
         }
       }
     );
@@ -1004,3 +1009,22 @@ app.put('/perfil/health', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Error al actualizar los datos de salud' });
   }
 });
+
+// Ruta protegida para acceder al perfil de usuario solo con token válido
+app.get('/perfil', authenticateToken, async (req, res) => {
+  try {
+    const usuario = await usersCollection.findOne({ _id: req.user.id });
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    res.status(200).json({ 
+      nombre: usuario.nombre,
+      email: usuario.email,
+      healthData: usuario.healthData 
+    });
+  } catch (error) {
+    console.error('Error al obtener el perfil del usuario:', error);
+    res.status(500).json({ message: 'Error al obtener el perfil' });
+  }
+});
+
