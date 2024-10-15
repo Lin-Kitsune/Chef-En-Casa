@@ -42,13 +42,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   activeItem: {
-    backgroundColor: '#619537', // Fondo verde para el item activo
-    borderRadius: 10,
+    backgroundColor: '#619537',  // Verde más oscuro cuando está activo
+    borderRadius: 8,
   },
   activeText: {
-    color: '#FFF', // Texto blanco para el item activo
-    fontWeight: 'bold',
-  },
+    color: '#FFF',  // Blanco para el texto activo
+  },  
   contentContainer: {
     flexGrow: 1,
   },

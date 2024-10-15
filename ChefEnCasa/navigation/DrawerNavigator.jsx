@@ -6,6 +6,7 @@ import CustomDrawerContent from '../screens/Sidebar/CustomDrawerContent'; // Imp
 import NewsScreen from '../screens/NewsScreen/NewsScreen';
 import BottomTabNavigator from './BottomTabNavigator'; // Importa el BottomTabNavigator
 import { createStackNavigator } from '@react-navigation/stack';  // Importa Stack Navigator para manejar el header con flecha
+import PointsStack from './PointsStack';  // Stack de puntos
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
@@ -64,6 +65,12 @@ const DrawerNavigator = () => {
         options={{
           headerShown: false, // El header se maneja en el NewsStack
         }}
+      />
+      {/* PointsStack: Maneja la navegación para Puntos */}
+      <Drawer.Screen 
+        name="PointsStack" 
+        component={PointsStack} 
+        options={{ headerShown: false }} 
       />
     </Drawer.Navigator>
   );
