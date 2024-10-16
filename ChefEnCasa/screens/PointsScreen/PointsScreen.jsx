@@ -43,6 +43,13 @@ const useCoupon = (id) => {
     setModalVisible(false);
   };
 
+  // Función para marcar el cupón como utilizado
+const handleUseCoupon = () => {
+  if (selectedCoupon) {
+    useCoupon(selectedCoupon.id); // Llama a la función useCoupon con el cupón seleccionado
+  }
+};
+
   // Renderizar el cupón
   const renderCoupon = ({ item }) => (
     <TouchableOpacity 
@@ -127,7 +134,6 @@ const useCoupon = (id) => {
 
               {/* Línea separadora */}
               <View style={styles.modalSeparator}>
-                {/* Generamos varios dashes para crear el efecto de línea discontinua */}
                 {Array.from({ length: 15 }).map((_, index) => (
                     <View key={index} style={styles.modaldash} />
                 ))}
@@ -148,7 +154,7 @@ const useCoupon = (id) => {
 
               {/* Botones */}
               <View style={styles.modalButtons}>
-                <TouchableOpacity onPress={() => handleUseCoupon()} style={styles.useButton}>
+                <TouchableOpacity onPress={handleUseCoupon} style={styles.useButton}>
                     <Icon name="check-circle" size={24} color="#fff" />
                     <Text style={styles.buttonText}>UTILIZAR</Text>
                 </TouchableOpacity>
