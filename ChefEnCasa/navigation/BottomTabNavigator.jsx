@@ -2,7 +2,6 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import HomeScreen from '../screens/HomeScreen/HomeScreen';
 import HomeStackNavigator from '../navigation/HomeStackNavigator'; 
 import ProfileStackNavigator from '../navigation/ProfileStackNavigator'; 
 import SavedScreenStackNavigator from '../navigation/SavedScreenStackNavigator'; 
@@ -13,25 +12,29 @@ const Tab = createBottomTabNavigator();
 const BottomTabNavigator = () => {
   return (
     <Tab.Navigator
-    initialRouteName='Home'
-      screenOptions={(
-        
-        { route }) => ({
+      initialRouteName="Home"
+      screenOptions={({ route }) => ({
         tabBarActiveTintColor: '#ffffff',
         tabBarInactiveTintColor: '#cfcfcf',
-        tabBarStyle: {
-          backgroundColor: '#619537',
-          height: 70,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          position: 'absolute',
-          bottom: 10,
-          left: 10,
-          right: 10,
-          elevation: 5,
-          paddingBottom: 5,
-          paddingTop: 5,
-        },
+        tabBarStyle: ((route) => {
+          const routeName = route?.state?.routes[route.state.index]?.name ?? '';
+          if (routeName === 'Recipe') {
+            return { display: 'none' };  // Oculta el Bottom Tab Navigator en la pantalla de recetas
+          }
+          return {
+            backgroundColor: '#619537',
+            height: 70,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            position: 'absolute',
+            bottom: 10,
+            left: 10,
+            right: 10,
+            elevation: 5,
+            paddingBottom: 5,
+            paddingTop: 5,
+          };
+        })(route),        
         headerShown: false,
         tabBarIcon: ({ color }) => {
           let iconName;
@@ -59,7 +62,7 @@ const BottomTabNavigator = () => {
       <Tab.Screen name="Buscar" component={BuscadorNavigator} />
       <Tab.Screen name="Favoritos" component={SavedScreenStackNavigator} />
       <Tab.Screen name="Home" component={HomeStackNavigator} />
-      <Tab.Screen name="Notificaciones" component={HomeScreen} />
+      <Tab.Screen name="Notificaciones" component={HomeStackNavigator} />
       <Tab.Screen name="Perfil" component={ProfileStackNavigator} />
     </Tab.Navigator>
   );
@@ -71,8 +74,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 35,
     borderWidth: 3,
-    borderColor: '#ffffff',  // Color del borde alrededor del ícono Home
-    marginTop: -25,  // Eleva el ícono Home
+    borderColor: '#ffffff',
+    marginTop: -25,
     justifyContent: 'center',
     alignItems: 'center',
   },

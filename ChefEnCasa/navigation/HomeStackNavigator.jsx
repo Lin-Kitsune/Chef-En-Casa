@@ -76,7 +76,10 @@ const HomeStackNavigator = () => {
       <Stack.Screen 
         name="Recipe" 
         component={RecipeScreen}
-        options={{ headerShown: false }}  // Ocultar el header en Recipe
+        options={{
+          headerShown: false,  // Oculta el header
+          tabBarStyle: { display: 'none' }  // Asegura que el Bottom Tab esté oculto
+        }}
       />
       <Stack.Screen 
         name="ShoppingList" 

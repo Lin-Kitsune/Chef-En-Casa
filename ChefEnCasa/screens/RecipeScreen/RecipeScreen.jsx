@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, Modal } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import styles from './RecipeScreenStyles';  // Los estilos actualizados
+import styles from './RecipeScreenStyles';
 
 const RecipeScreen = ({ route, navigation }) => {
   const { title, image, ingredients, instructions } = route.params;
-  
-  // Verifica si instructions está llegando como array
-  console.log('Instructions received:', instructions);
 
+  // Estado para ingredientes seleccionados
   const [checkedIngredients, setCheckedIngredients] = useState(Array(ingredients.length).fill(false));
+
+  // Estado para el modal de calificación
+  const [modalVisible, setModalVisible] = useState(false);
+  const [rating, setRating] = useState(0);  // Valoración seleccionada
 
   const toggleCheck = (index) => {
     const newCheckedIngredients = [...checkedIngredients];
@@ -17,34 +19,19 @@ const RecipeScreen = ({ route, navigation }) => {
     setCheckedIngredients(newCheckedIngredients);
   };
 
-   // Función para compartir la receta
-   const onShare = async () => {
-    try {
-      const result = await Share.share({
-        message: `Mira esta increíble receta de ${title}!`,
-      });
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          console.log('Compartido con éxito con actividad: ', result.activityType);
-        } else {
-          console.log('Compartido con éxito');
-        }
-      } else if (result.action === Share.dismissedAction) {
-        console.log('Compartir descartado');
-      }
-    } catch (error) {
-      console.error('Error al compartir: ', error.message);
-    }
+  // Función para manejar la calificación por estrellas
+  const handleRating = (star) => {
+    setRating(star);
   };
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        {/* Image Container */}  
+        {/* Image Container */}
         <View style={styles.imageContainer}>
           <Image source={image} style={styles.recipeImage} />
           
-          {/* Floating Back Button */}  
+          {/* Floating Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={24} color="#fff" />
           </TouchableOpacity>
@@ -54,8 +41,8 @@ const RecipeScreen = ({ route, navigation }) => {
             <Icon name="heart" size={24} color="#f44336" />
           </TouchableOpacity>
 
-          {/* Floating Share Button - Botón flotante de compartir */}
-          <TouchableOpacity style={styles.shareButton} onPress={onShare}>
+          {/* Floating Share Button */}
+          <TouchableOpacity style={styles.shareButton} onPress={() => { /* lógica de compartir */ }}>
             <Icon name="share-alt" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -94,9 +81,54 @@ const RecipeScreen = ({ route, navigation }) => {
               <Text style={styles.instructionsText}>{step}</Text>
             </View>
           ))}
+            <TouchableOpacity style={styles.finishButton} onPress={() => setModalVisible(true)}>
+              <Text style={styles.finishButtonText}>RECETA TERMINADA</Text>
+            </TouchableOpacity>
+            {/* Espacio en blanco adicional */}
+             <View style={{ height: 30 }} />
         </View>
+
+        {/* Modal para la calificación */}
+        <Modal
+          visible={modalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Califica la receta</Text>
+              
+              <View style={styles.starsContainer}>
+                {Array.from({ length: 5 }, (_, index) => (
+                  <TouchableOpacity key={index} onPress={() => handleRating(index + 1)}>
+                    <Icon 
+                      name={index < rating ? "star" : "star-o"} 
+                      size={32} 
+                      color="#FFD700" 
+                      style={styles.starIcon}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity 
+                style={styles.submitRatingButton} 
+                onPress={() => {
+                  // Lógica para enviar la calificación al backend
+                  setModalVisible(false);
+                  alert(`Calificaste con ${rating} estrellas`);
+                }}
+              >
+                <Text style={styles.submitRatingText}>Enviar Calificación</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </View>
   );
 };
+
 export default RecipeScreen;
+
