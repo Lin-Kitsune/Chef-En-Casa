@@ -94,6 +94,16 @@ useFocusEffect(
           </TouchableOpacity>
           <Text style={styles.topButtonText}>Meta</Text>
         </View>
+
+        <View style={{ alignItems: 'center' }}>
+          <TouchableOpacity 
+            style={styles.topButton}
+            onPress={() => navigation.navigate('Tendencias')}  // Navigate to "TendenciasScreen"
+          >
+            <Image source={require('../../assets/icons/tendencias.png')} style={styles.buttonIcon} />
+          </TouchableOpacity>
+          <Text style={styles.topButtonText}>Tendencias</Text>
+        </View>
       </View>
 
       {/* Categorías */}

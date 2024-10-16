@@ -9,6 +9,7 @@ import MetaScreen from '../screens/MetaScreen/MetaScreen';
 import AlmuerzoScreen from '../screens/AlmuerzoScreen/AlmuerzoScreen';
 import CenaScreen from '../screens/CenaScreen/CenaScreen';
 import ReposteriaScreen from '../screens/ReposteriaScreen/ReposteriaScreen';
+import TendenciaScreen from '../screens/TendenciaScreen/TendenciaScreen';
 
 const Stack = createStackNavigator();
 
@@ -111,6 +112,18 @@ const HomeStackNavigator = () => {
         headerTintColor: '#fff',
         headerTitleAlign: 'center',
       }}
+      />
+      <Stack.Screen 
+        name="Tendencias" 
+        component={TendenciaScreen} 
+        options={{
+          title: 'TENDENCIAS',
+          headerStyle: {
+            backgroundColor: '#619537',
+          },
+          headerTintColor: '#fff',
+          headerTitleAlign: 'center',
+        }}
       />
     </Stack.Navigator>
   );
