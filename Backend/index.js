@@ -16,8 +16,6 @@ const NodeCache = require('node-cache');
 const { ObjectId } = require('mongodb');
 const fs = require('fs'); // Importar el módulo de sistema de archivos (fs)
 const Almacen = require('./models/Almacen');
-const { crearOActualizarAlmacen } = require('./models/Almacen'); // Importar las funciones actualizadas de Almacen.js
-
 
 // Cargar el archivo JSON de ingredientes
 let ingredientesMap = {};
@@ -166,7 +164,7 @@ app.use((err, req, res, next) => {
 
   // Ruta de registro de usuarios
   app.post('/register', async (req, res) => {
-    const { nombre, email, password, diet, allergies } = req.body; // Obtener los datos del cuerpo de la solicitud
+    const { nombre, email, password, diet, allergies, role} = req.body; // Obtener los datos del cuerpo de la solicitud
 
     if (!nombre || !email || !password) { // Verificar si se envían todos los campos
       return res.status(400).json({ message: 'Todos los campos son obligatorios' });
@@ -185,7 +183,8 @@ app.use((err, req, res, next) => {
       email, 
       password: hashedPassword, 
       diet: diet || null,       // Si se proporciona, asignar; si no, null
-      allergies: allergies || [] // Asignar alergias si se proporcionan, o una lista vacía
+      allergies: allergies || [], // Asignar alergias si se proporcionan, o una lista vacía
+      role: role || 'user'  // Asignar rol, por defecto 'user'
     }; // Crear el nuevo usuario con la contraseña hasheada
 
     await usersCollection.insertOne(nuevoUsuario); // Insertar el nuevo usuario en la base de datos
@@ -218,7 +217,7 @@ app.use((err, req, res, next) => {
     }
 
     // Generar el token JWT
-    const token = jwt.sign({ id: usuario._id, email: usuario.email }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: usuario._id, email: usuario.email, role: usuario.role }, JWT_SECRET, { expiresIn: '1h' });
 
     // Enviar el token de respuesta
     res.status(200).json({ message: 'Login exitoso', token });
@@ -282,6 +281,155 @@ async function translateText(text, targetLanguage = 'es') {
     throw error;
   }
 }
+
+//===========================================checkRole de usuarios===============================================
+// Middleware para verificar el rol del usuario
+function checkRole(role) {
+  return (req, res, next) => {
+    // Verifica si el usuario tiene el rol adecuado
+    if (req.user.role !== role) {
+      return res.status(403).json({ message: 'Acceso denegado' });
+    }
+    next(); // Continúa si el rol es correcto
+  };
+}
+
+//===========================================FUNCIONES DE ADMINISTRADOR========================================================
+
+//CREAR USUARIOS====================================================================
+// Ruta para crear un nuevo usuario
+app.post('/admin/usuarios', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { nombre, email, password, role = 'user' } = req.body;
+
+  // Validación simple de campos
+  if (!nombre || !email || !password) {
+    return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  }
+
+  try {
+    // Verificar si el usuario ya existe
+    const usuarioExistente = await usersCollection.findOne({ email });
+    if (usuarioExistente) {
+      return res.status(400).json({ message: 'El usuario ya existe' });
+    }
+
+    // Hashear la contraseña
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Crear el nuevo usuario
+    const nuevoUsuario = { nombre, email, password: hashedPassword, role };
+    await usersCollection.insertOne(nuevoUsuario);
+
+    res.status(201).json({ message: 'Usuario creado con éxito', usuario: { nombre, email, role } });
+  } catch (error) {
+    console.error('Error al crear usuario:', error.message);
+    res.status(500).json({ message: 'Error al crear usuario', error: error.message });
+  }
+});
+
+
+//lEER-LISTAR USUARIOS REGISTRADOS==================================
+// Ruta para obtener todos los usuarios (solo accesible para administradores)
+app.get('/admin/usuarios', authenticateToken, checkRole('admin'), async (req, res) => {
+  try {
+    const usuarios = await usersCollection.find({}).toArray();
+    res.status(200).json(usuarios);
+  } catch (error) {
+    console.error('Error al obtener usuarios:', error.message);
+    res.status(500).json({ message: 'Error al obtener usuarios', error: error.message });
+  }
+});
+
+//ACTUALIZAR USUARIO(S)==================================
+// Ruta para actualizar un usuario (solo admin)
+app.put('/admin/usuarios/:id', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { id } = req.params;
+  const { nombre, email, password } = req.body;
+
+  // Validación simple de campos (nombre y email son obligatorios)
+  if (!nombre || !email) {
+    return res.status(400).json({ message: 'El nombre y el email son obligatorios' });
+  }
+
+  try {
+    // Crear el objeto de actualización
+    const updateFields = {
+      nombre,
+      email
+    };
+
+    // Si se proporciona una nueva contraseña, hashearla
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateFields.password = hashedPassword;
+    }
+
+    // Actualizar el usuario en la base de datos
+    const result = await usersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateFields }
+    );
+
+    // Verificar si hubo cambios
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado o sin cambios' });
+    }
+
+    res.status(200).json({ message: 'Usuario actualizado con éxito' });
+  } catch (error) {
+    console.error('Error al actualizar usuario:', error.message);
+    res.status(500).json({ message: 'Error al actualizar usuario', error: error.message });
+  }
+});
+
+
+//ELIMINAR USUARIO(S)========================================================================
+// Ruta para eliminar un usuario (solo admin)
+app.delete('/admin/usuarios/:id', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await usersCollection.deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    res.status(200).json({ message: 'Usuario eliminado con éxito' });
+  } catch (error) {
+    console.error('Error al eliminar usuario:', error.message);
+    res.status(500).json({ message: 'Error al eliminar usuario', error: error.message });
+  }
+});
+
+//OBTENER ESTADISTICAS GENERALES (TOTAL DE USUARIOS, TOTAL DE RECETAS Y TOTAL DE INGREDIENTES POR ALMACEN)============================
+// Ruta para obtener estadísticas del sistema (solo accesible para admin)
+app.get('/admin/estadisticas', authenticateToken, checkRole('admin'), async (req, res) => {
+  try {
+    // Obtener el número total de usuarios
+    const totalUsuarios = await usersCollection.countDocuments();
+
+    // Obtener el número total de recetas (si tienes una colección de recetas)
+    const totalRecetas = await db.collection('recetas').countDocuments();
+
+    // Obtener el número total de ingredientes en almacenes
+    const totalIngredientes = await db.collection('almacen').aggregate([
+      { $unwind: "$ingredientes" },  // Descomponer el array de ingredientes
+      { $count: "totalIngredientes" } // Contar el número total de ingredientes
+    ]).toArray();
+
+    const ingredientesCount = totalIngredientes.length > 0 ? totalIngredientes[0].totalIngredientes : 0;
+
+    res.status(200).json({
+      totalUsuarios,
+      totalRecetas,
+      totalIngredientes: ingredientesCount
+    });
+  } catch (error) {
+    console.error('Error al obtener estadísticas:', error.message);
+    res.status(500).json({ message: 'Error al obtener estadísticas', error: error.message });
+  }
+});
 
 //=============================================================BUSCAR RECETAS====================================================
 //Ahora busca todas las recetas sin filtro "ingrediente", apareceran todas las recetas a menos que el usuario filtre
@@ -357,9 +505,6 @@ async function testTranslation() {
 }
 
 testTranslation();
-
-//============================================INFO RECETA=============================================
-
 // Obtener detalles de una receta desde Spoonacular
 app.get('/receta/:id', authenticateToken, async (req, res) => {
   const recipeId = req.params.id; // Obtener el ID de la receta desde la URL
@@ -372,7 +517,6 @@ app.get('/receta/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Error al obtener la receta de Spoonacular', error: error.message });
   }
 });
-
 // Función para obtener detalles de la receta desde Spoonacular
 async function obtenerRecetaDeSpoonacular(recipeId) {
   try {
@@ -388,7 +532,6 @@ async function obtenerRecetaDeSpoonacular(recipeId) {
     throw new Error('Error al obtener la receta de Spoonacular: ' + error.message);
   }
 }
-
 //===================================================INGREDIENTES=============================================
 // Ruta para obtener todos los ingredientes  
 // Modificado para traducirlos al español
