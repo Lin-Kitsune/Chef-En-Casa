@@ -5,6 +5,9 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import styles from './ProfileScreenStyles';
 import healthStyles from './healthStyles';
 import { fetchIngredients } from '../../services/ingredients';
+import { updateHealthData } from '../../services/auth'; 
+import { getUserProfile } from '../../services/auth';  // Adjust the path if necessary
+import { getToken } from '../../services/auth';
 
 const recentRecipes = [
   {
@@ -35,7 +38,6 @@ const ProfileScreen = ({ navigation }) => {
   const [selectedAllergies, setSelectedAllergies] = useState([]);
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
-  const [fc, setFC] = useState('');  // Frecuencia cardíaca
   const [imc, setIMC] = useState(null);
   const [availableIngredients, setAvailableIngredients] = useState([]);
   const [currentPage, setCurrentPage] = useState(1); 
@@ -43,6 +45,7 @@ const ProfileScreen = ({ navigation }) => {
   const ingredients = ['Leche', 'Huevo', 'Nueces', 'Gluten', 'Pescado', 'Mariscos'];
   const [dietRecommendation, setDietRecommendation] = useState(''); // Estado para la recomendación de dieta
   const [selectedDiet, setSelectedDiet] = useState('Equilibrada');
+  const [userProfile, setUserProfile] = useState(null);
 
   const toggleAllergyModal = () => setAllergyModalVisible(!allergyModalVisible);
   const toggleHealthModal = () => setHealthModalVisible(!healthModalVisible);
@@ -88,15 +91,52 @@ const ProfileScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const calculateIMC = () => {
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = await getToken();
+        console.log('Token:', token);  // Log the token to see if it's being retrieved
+        
+        const profileData = await getUserProfile();  // Fetch user profile after getting token
+        setUserProfile(profileData);  // Store user profile in state
+      } catch (error) {
+        console.error('Error al obtener el perfil del usuario:', error);
+      }
+    };
+  
+    fetchUserProfile();
+  }, []);
+
+  // Función para calcular IMC y enviar los datos al backend
+  const handleCalculateIMC = async () => {
     if (weight && height) {
       const heightInMeters = height / 100;
       const calculatedIMC = (weight / (heightInMeters * heightInMeters)).toFixed(1);
       setIMC(calculatedIMC);
-      recommendDiet(calculatedIMC);  // Llamamos a la función para recomendar una dieta
+  
+      const recommendation = recommendDiet(calculatedIMC); // Obtener recomendación de dieta
+  
+      try {
+        // Llamar a updateHealthData para enviar la información al backend
+        await updateHealthData(weight, height, calculatedIMC, recommendation);
+        alert('Datos de salud actualizados exitosamente');
+      } catch (error) {
+        alert('Error al actualizar los datos de salud');
+      }
     }
   };
+  
 
+  // const calculateIMC = () => {
+  //   if (weight && height) {
+  //     const heightInMeters = height / 100;
+  //     const calculatedIMC = (weight / (heightInMeters * heightInMeters)).toFixed(1);
+  //     setIMC(calculatedIMC);
+  //     recommendDiet(calculatedIMC);  
+  //   }
+  // };
+
+  // Función de recomendación de dieta
   const recommendDiet = (imcValue) => {
     let recommendation = '';
     if (imcValue < 18.5) {
@@ -107,7 +147,7 @@ const ProfileScreen = ({ navigation }) => {
       recommendation = 'Bajar de peso';
     }
     setDietRecommendation(recommendation);
-    setSelectedDiet(recommendation);  // Asignamos la recomendación como valor predeterminado
+    return recommendation;  // Retornar la recomendación para guardarla en el backend
   };
   ///Nuevo
   const calculateWeightRange = (height) => {
@@ -147,7 +187,11 @@ const ProfileScreen = ({ navigation }) => {
           source={require('../../assets/images/user-avatar.png')}
           style={styles.profileImage}
         />
-        <Text style={styles.profileName}>USUARIO</Text>
+        {userProfile ? (
+          <Text style={styles.userName}>{userProfile.nombre || 'Usuario'}</Text>
+        ) : (
+          <Text style={styles.userName}>Cargando...</Text>  // Show loading text while waiting for data
+        )}
         <TouchableOpacity 
             style={styles.editButton} 
             onPress={() => navigation.navigate('EditProfile')} // Navegar a la pantalla de edición de perfil
@@ -243,7 +287,7 @@ const ProfileScreen = ({ navigation }) => {
               keyboardType="numeric"
             />
 
-            <TouchableOpacity onPress={calculateIMC} style={healthStyles.calculateButton}>
+            <TouchableOpacity onPress={handleCalculateIMC} style={healthStyles.calculateButton}>
               <Text style={healthStyles.calculateButtonText}>Calcular IMC</Text>
             </TouchableOpacity>
 
@@ -258,7 +302,7 @@ const ProfileScreen = ({ navigation }) => {
                 <View style={healthStyles.imcRangeContainer}>
                   <Text style={healthStyles.imcRangeText}>Rango de peso saludable sugerido:</Text>
                   <Text style={healthStyles.imcRangeValue}>
-                    {calculateWeightRange(height)}
+                    {`${(18.5 * (height / 100) ** 2).toFixed(1)} kg a ${(24.9 * (height / 100) ** 2).toFixed(1)} kg`}
                   </Text>
                 </View>
 

@@ -16,6 +16,10 @@ const NodeCache = require('node-cache');
 const { ObjectId } = require('mongodb');
 const fs = require('fs'); // Importar el módulo de sistema de archivos (fs)
 const Almacen = require('./models/Almacen');
+const { crearOActualizarAlmacen } = require('./models/Almacen'); // Importar las funciones actualizadas de Almacen.js
+const { getNoticias } = require('./models/newsService'); 
+require('dotenv').config();
+
 
 // Cargar el archivo JSON de ingredientes
 let ingredientesMap = {};
@@ -506,15 +510,49 @@ async function testTranslation() {
 
 testTranslation();
 // Obtener detalles de una receta desde Spoonacular
+
+//============================================INFO RECETA=============================================
+
+// Obtener detalles de una receta desde Spoonacular y traducirlos al español
 app.get('/receta/:id', authenticateToken, async (req, res) => {
   const recipeId = req.params.id; // Obtener el ID de la receta desde la URL
 
   try {
     // Llamar a la API de Spoonacular para obtener la información de la receta
     const receta = await obtenerRecetaDeSpoonacular(recipeId);
-    res.status(200).json(receta); // Devolver la receta en formato JSON
+
+    // Traducir el título de la receta
+    const tituloTraducido = await translateText(receta.title, 'es');
+
+    // Traducir los ingredientes de la receta
+    const ingredientesTraducidos = await Promise.all(receta.extendedIngredients.map(async ingrediente => {
+      const nombreTraducido = await translateText(ingrediente.name, 'es'); // Traducir el nombre del ingrediente al español
+      const descripcionTraducida = await translateText(ingrediente.original, 'es'); // Traducir la descripción completa
+      return { 
+        ...ingrediente, 
+        name: nombreTraducido,  // Sobrescribir el campo 'name' con la traducción
+        original: descripcionTraducida  // Sobrescribir la descripción completa
+      };
+    }));
+
+    // Traducir las instrucciones de la receta si existen
+    let instruccionesTraducidas = '';
+    if (receta.instructions) {
+      instruccionesTraducidas = await translateText(receta.instructions, 'es');
+    }
+
+    // Devolver la receta traducida
+    res.status(200).json({
+      title: tituloTraducido,
+      ingredients: ingredientesTraducidos,
+      instructions: instruccionesTraducidas || 'No hay instrucciones disponibles',
+      readyInMinutes: receta.readyInMinutes,
+      servings: receta.servings,
+      image: receta.image
+    });
+
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener la receta de Spoonacular', error: error.message });
+    res.status(500).json({ message: 'Error al obtener o traducir la receta de Spoonacular', error: error.message });
   }
 });
 // Función para obtener detalles de la receta desde Spoonacular
@@ -526,13 +564,14 @@ async function obtenerRecetaDeSpoonacular(recipeId) {
       }
     });
 
-    const receta = response.data;
-    return receta;
+    return response.data;
   } catch (error) {
     throw new Error('Error al obtener la receta de Spoonacular: ' + error.message);
   }
 }
 //===================================================INGREDIENTES=============================================
+
+
 // Ruta para obtener todos los ingredientes  
 // Modificado para traducirlos al español
 app.get('/ingredientes', async (req, res) => {
@@ -581,20 +620,55 @@ const conversiones = {
   'cup': 240,         // 1 cup = 240 gramos/mililitros
   'oz': 28.35,        // 1 ounce = 28.35 gramos
   'lb': 453.592,      // 1 pound = 453.592 gramos
-  'pinch': 0.36       // 1 pinch (pizca) = 0.36 gramos (aproximado)
+  'pinche': 0.36,      // 1 pinch (pizca) = 0.36 gramos (aproximado)
+  'clove': 5,         // 1 clove = 5 gramos
+  'head': 1000,        // 1 head = 1000 gramos
+  'ounce': 28.35,      // 1 ounce = 28.35 gramos
+  'serving': 0.5,       // 1 serving = 0.5 gramos
+  '""' : 1,          // 1 " = 0.5 gramos
+  "strip": 5,        // 1 strip = 5 gramos
+  "large": 100,       // 1 large = 100 gramos
+  "unidad": 100,       // 1 unidad = 50 gramos
+  "c": 240,            // 1 c = 240 gramos
+  "t": 50,             // 1 T = 50 gramos
+  "small": 100,       // 1 small = 100 gramos
+  "small pinch": 0.5  // 1 small pinch = 0.5 gramos
 };
 
 // Función para convertir una cantidad a gramos o mililitros
 function convertirMedida(cantidad, unidad) {
+  // Verificar si la unidad es una cadena vacía o nula
+  if (!unidad || unidad.trim() === '') {
+    console.warn(`Unidad vacía para la cantidad ${cantidad}, asignando unidad por defecto.`);
+    unidad = 'gram'; // Asignar una unidad por defecto si está vacía, como 'gram'
+  }
+
+  // Convertir la unidad a singular si es plural
+  if (unidad.endsWith('s')) {
+    unidad = unidad.slice(0, -1); // Quitar la 's' final para convertir a singular
+  }
+
   const conversionFactor = conversiones[unidad.toLowerCase()];
   if (!conversionFactor) {
     throw new Error(`Unidad desconocida: ${unidad}`);
   }
+
   return cantidad * conversionFactor;
 }
 
 //============================================ALMACEN=============================================
 //================================================================================================
+
+// Traducción de ingredientes ingresados por el usuario en español a inglés
+const traducirIngredienteAIngles = (ingrediente) => {
+  // Buscar el nombre en el archivo ingredientes.json, si no está, se mantiene en español
+  for (const [espanol, ingles] of Object.entries(ingredientesMap)) {
+    if (espanol.toLowerCase() === ingrediente.toLowerCase()) {
+      return ingles;
+    }
+  }
+  return ingrediente;  // Si no hay traducción, devolver el mismo nombre
+};
 
 // Revisar almacén
 app.get('/almacen', authenticateToken, async (req, res) => {
@@ -611,12 +685,20 @@ app.get('/almacen', authenticateToken, async (req, res) => {
   }
 });
 
-// Ingresar alimentos en el almacén
+// Agregar ingredientes al almacen
 app.post('/almacen/registro', authenticateToken, async (req, res) => {
   const { ingredientes } = req.body;
+
   try {
     const db = await connectToDatabase(); // Conectar a la base de datos
-    await crearOActualizarAlmacen(db, req.user.id, ingredientes); // Utilizar la función para crear o actualizar el almacén
+    const ingredientesTraducidos = ingredientes.map(ing => ({
+      nombre: traducirIngredienteAIngles(ing.nombre),  // Traducir el ingrediente a inglés
+      cantidad: convertirMedida(ing.cantidad, ing.unidad), // Convertir la cantidad a gramos o mililitros
+      fechaIngreso: new Date(),
+      perecedero: ing.perecedero || false
+    }));
+
+    await crearOActualizarAlmacen(db, req.user.id, ingredientesTraducidos); // Usar los ingredientes traducidos
     res.status(200).json({ message: 'Alimentos registrados o actualizados en el almacén' });
   } catch (error) {
     console.error('Error al registrar alimentos:', error);
@@ -624,37 +706,99 @@ app.post('/almacen/registro', authenticateToken, async (req, res) => {
   }
 });
 
-//============================================PREPARAR RECETA====================================
-//================================================================================================
+// Eliminar un ingrediente completo del almacén
+app.delete('/almacen/eliminar', authenticateToken, async (req, res) => {
+  const { nombreIngrediente } = req.body; // El nombre del ingrediente que se quiere eliminar
 
-// Función para obtener detalles de la receta desde Spoonacular
-async function obtenerRecetaDeSpoonacular(recipeId) {
-  try {
-    const response = await axios.get(`https://api.spoonacular.com/recipes/${recipeId}/information`, {
-      params: {
-        apiKey: process.env.SPOONACULAR_API_KEY
-      }
-    });
-
-    const receta = response.data;
-    return receta;
-  } catch (error) {
-    throw new Error('Error al obtener la receta de Spoonacular: ' + error.message);
+  if (!nombreIngrediente) {
+    return res.status(400).json({ message: 'Debe proporcionar el nombre del ingrediente' });
   }
-}
-
-// Obtener receta de Spoonacular y descontar ingredientes del almacén
-app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => {
-  const { recipeId } = req.body;  // El ID de la receta de Spoonacular que el usuario desea preparar
 
   try {
-    const db = await connectToDatabase(); // Conectar a la base de datos
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
 
-    // Obtener los ingredientes de la receta desde Spoonacular
+    // Buscar y eliminar el ingrediente del almacén del usuario
+    const result = await db.collection('almacen').updateOne(
+      { usuarioId },
+      { $pull: { ingredientes: { nombre: nombreIngrediente.toLowerCase() } } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Ingrediente no encontrado en el almacén' });
+    }
+
+    res.status(200).json({ message: `Ingrediente ${nombreIngrediente} eliminado correctamente` });
+  } catch (error) {
+    console.error('Error al eliminar el ingrediente:', error.message);
+    res.status(500).json({ error: 'Error al eliminar el ingrediente del almacén' });
+  }
+});
+
+// Reducir la cantidad de un ingrediente en el almacén
+app.put('/almacen/reducir', authenticateToken, async (req, res) => {
+  const { nombreIngrediente, cantidadReducir } = req.body; // El nombre del ingrediente y la cantidad a reducir
+
+  if (!nombreIngrediente || !cantidadReducir) {
+    return res.status(400).json({ message: 'Debe proporcionar el nombre del ingrediente y la cantidad a reducir' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Buscar el ingrediente en el almacén del usuario
+    const almacen = await db.collection('almacen').findOne({ usuarioId });
+    if (!almacen) {
+      return res.status(404).json({ message: 'Almacén no encontrado' });
+    }
+
+    // Buscar el ingrediente en el almacén del usuario
+    const ingrediente = almacen.ingredientes.find(item => item.nombre === nombreIngrediente.toLowerCase());
+
+    if (!ingrediente) {
+      return res.status(404).json({ message: `Ingrediente ${nombreIngrediente} no encontrado en el almacén` });
+    }
+
+    // Verificar si se puede reducir la cantidad
+    if (ingrediente.cantidad < cantidadReducir) {
+      return res.status(400).json({ message: 'La cantidad a reducir es mayor que la cantidad disponible' });
+    }
+
+    // Reducir la cantidad del ingrediente
+    ingrediente.cantidad -= cantidadReducir;
+
+    // Si la cantidad llega a 0, eliminar el ingrediente del almacén
+    if (ingrediente.cantidad === 0) {
+      await db.collection('almacen').updateOne(
+        { usuarioId },
+        { $pull: { ingredientes: { nombre: nombreIngrediente.toLowerCase() } } }
+      );
+      return res.status(200).json({ message: `Ingrediente ${nombreIngrediente} eliminado ya que llegó a 0` });
+    } else {
+      // Actualizar la cantidad del ingrediente en el almacén
+      await db.collection('almacen').updateOne(
+        { usuarioId, 'ingredientes.nombre': nombreIngrediente.toLowerCase() },
+        { $set: { 'ingredientes.$.cantidad': ingrediente.cantidad } }
+      );
+    }
+
+    res.status(200).json({ message: `Cantidad de ${nombreIngrediente} reducida correctamente` });
+  } catch (error) {
+    console.error('Error al reducir la cantidad del ingrediente:', error.message);
+    res.status(500).json({ error: 'Error al reducir la cantidad del ingrediente' });
+  }
+});
+
+// ============================================ PREPARAR RECETA ====================================
+// Descontar ingredientes del almacén al preparar receta desde Spoonacular y generar una única lista de compras
+app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => {
+  const { recipeId } = req.body;
+
+  try {
+    const db = await connectToDatabase();
     const receta = await obtenerRecetaDeSpoonacular(recipeId);
     const ingredientesReceta = receta.extendedIngredients;
-
-    // Obtener el almacén del usuario
     const usuarioId = new ObjectId(req.user.id);
     const almacen = await db.collection('almacen').findOne({ usuarioId });
 
@@ -662,63 +806,355 @@ app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => 
       return res.status(404).json({ message: 'Almacén no encontrado' });
     }
 
-    // Recorrer los ingredientes de la receta y verificar si están en el almacén del usuario
-    let faltanIngredientes = false;
+    let faltanIngredientes = [];
 
-    ingredientesReceta.forEach(ingredienteReceta => {
-      const ingredienteEnAlmacen = almacen.ingredientes.find(item => item.nombre === ingredienteReceta.name.toLowerCase());
-
-      // Convertir la cantidad del ingrediente de la receta a gramos usando la unidad de Spoonacular
+    // Recorrer los ingredientes de la receta
+    for (const ingredienteReceta of ingredientesReceta) {
+      const nombreTraducido = convertirIngredienteAEspanol(ingredienteReceta.name.toLowerCase());
+      const ingredienteEnAlmacen = almacen.ingredientes.find(item => item.nombre === nombreTraducido);
       const cantidadEnGramos = convertirMedida(ingredienteReceta.amount, ingredienteReceta.unit);
 
       if (!ingredienteEnAlmacen || ingredienteEnAlmacen.cantidad < cantidadEnGramos) {
-        faltanIngredientes = true;
-        return res.status(400).json({
-          message: `No tienes suficiente ${ingredienteReceta.name} en tu almacén o no tienes este ingrediente.`
+        // Si el ingrediente falta o no hay suficiente cantidad, agregarlo a la lista de compras
+        const existente = faltanIngredientes.find(item => item.nombre === nombreTraducido);
+        if (existente) {
+          existente.cantidad += cantidadEnGramos; // Si ya existe el ingrediente en la lista, sumar la cantidad
+        } else {
+          faltanIngredientes.push({
+            nombre: nombreTraducido,
+            cantidad: cantidadEnGramos
+          });
+        }
+      }
+    }
+
+    if (faltanIngredientes.length > 0) {
+      // Verificar si ya hay una lista de compras activa
+      const listaDeCompras = await db.collection('listasDeCompras').findOne({ usuarioId, completada: false });
+
+      if (listaDeCompras) {
+        // Si ya hay una lista de compras activa, agregar los ingredientes faltantes a la lista existente
+        for (const ingrediente of faltanIngredientes) {
+          const existente = listaDeCompras.ingredientes.find(item => item.nombre === ingrediente.nombre);
+          if (existente) {
+            existente.cantidad += ingrediente.cantidad; // Sumar la cantidad a los ingredientes ya existentes
+          } else {
+            listaDeCompras.ingredientes.push(ingrediente); // Agregar nuevos ingredientes faltantes
+          }
+        }
+
+        // Actualizar la lista de compras con los nuevos ingredientes
+        await db.collection('listasDeCompras').updateOne(
+          { usuarioId, completada: false },
+          { $set: { ingredientes: listaDeCompras.ingredientes } }
+        );
+      } else {
+        // Si no hay lista de compras activa, crear una nueva
+        await db.collection('listasDeCompras').insertOne({
+          usuarioId,
+          ingredientes: faltanIngredientes,
+          completada: false
         });
       }
 
-      // Descontar la cantidad utilizada de los ingredientes
-      ingredienteEnAlmacen.cantidad -= cantidadEnGramos;
-    });
+      return res.status(400).json({
+        message: 'No tienes suficientes ingredientes. Se ha actualizado o generado una lista de compras.',
+        faltanIngredientes
+      });
+    }
 
-    if (faltanIngredientes) return; // Ya se envió el error, no seguir
-
-    // Actualizar el almacén del usuario con los ingredientes descontados
-    await db.collection('almacen').updateOne(
-      { usuarioId },
-      { $set: { ingredientes: almacen.ingredientes } }
-    );
-
-    res.status(200).json({ message: 'Ingredientes descontados del almacén al preparar la receta' });
+    res.status(200).json({ message: 'Ingredientes descontados correctamente' });
   } catch (error) {
-    res.status(500).json({ error: 'Error al preparar la receta de Spoonacular: ' + error.message });
+    res.status(500).json({ error: `Error al preparar la receta: ${error.message}` });
   }
 });
 
+//============================================LISTA DE COMPRAS====================================
+// Descontar ingredientes y generar lista de compras
+app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => {
+  const { recipeId } = req.body;
+
+  try {
+    const db = await connectToDatabase();
+
+    const receta = await obtenerRecetaDeSpoonacular(recipeId);
+    const ingredientesReceta = receta.extendedIngredients;
+    const usuarioId = new ObjectId(req.user.id);
+    const almacen = await db.collection('almacen').findOne({ usuarioId });
+
+    if (!almacen) {
+      return res.status(404).json({ message: 'Almacén no encontrado' });
+    }
+
+    let faltanIngredientes = [];
+    
+    for (const ingredienteReceta of ingredientesReceta) {
+      const nombreTraducido = convertirIngredienteAEspanol(ingredienteReceta.name.toLowerCase());
+      const ingredienteEnAlmacen = almacen.ingredientes.find(item => item.nombre === nombreTraducido);
+      const cantidadEnGramos = convertirMedida(ingredienteReceta.amount, ingredienteReceta.unit);
+
+      if (!ingredienteEnAlmacen || ingredienteEnAlmacen.cantidad < cantidadEnGramos) {
+        faltanIngredientes.push({
+          nombre: nombreTraducido,
+          cantidad: cantidadEnGramos
+        });
+      }
+    }
+
+    if (faltanIngredientes.length > 0) {
+      await db.collection('listasDeCompras').updateOne(
+        { usuarioId },
+        { $set: { ingredientes: faltanIngredientes, completada: false } },
+        { upsert: true }
+      );
+
+      return res.status(400).json({
+        message: 'No tienes suficientes ingredientes. Se ha generado una lista de compras.',
+        faltanIngredientes
+      });
+    }
+
+    res.status(200).json({ message: 'Ingredientes descontados correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: `Error al preparar la receta: ${error.message}` });
+  }
+});
+
+//VER LISTA DE COMPRAS
+app.get('/lista-de-compras', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+    const listaDeCompras = await db.collection('listasDeCompras').findOne({ usuarioId, completada: false });
+
+    if (!listaDeCompras) {
+      return res.status(404).json({ message: 'No tienes lista de compras' });
+    }
+
+    res.status(200).json(listaDeCompras);
+  } catch (error) {
+    res.status(500).json({ error: `Error al obtener la lista de compras: ${error.message}` });
+  }
+});
+
+// Marcar como comprada la lista o eliminarla
+app.put('/lista-de-compras/marcar-comprada', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+    
+    await db.collection('listasDeCompras').updateOne(
+      { usuarioId },
+      { $set: { completada: true } }
+    );
+
+    res.status(200).json({ message: 'Lista de compras marcada como comprada' });
+  } catch (error) {
+    res.status(500).json({ error: `Error al marcar la lista de compras como comprada: ${error.message}` });
+  }
+});
+
+// Eliminar la lista de compras
+app.delete('/lista-de-compras/eliminar', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    await db.collection('listasDeCompras').deleteOne({ usuarioId });
+
+    res.status(200).json({ message: 'Lista de compras eliminada exitosamente' });
+  } catch (error) {
+    res.status(500).json({ error: `Error al eliminar la lista de compras: ${error.message}` });
+  }
+});
+
+// Ruta para actualizar la cantidad de un ingrediente en la lista de compras
+app.put('/lista-de-compras/actualizar-cantidad', authenticateToken, async (req, res) => {
+  const { nombreIngrediente, nuevaCantidad } = req.body;
+
+  if (!nombreIngrediente || !nuevaCantidad || nuevaCantidad <= 0) {
+    return res.status(400).json({ message: 'Debe proporcionar un nombre de ingrediente y una cantidad válida' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Actualizar la cantidad del ingrediente en la lista de compras
+    await db.collection('listasDeCompras').updateOne(
+      { usuarioId, 'ingredientes.nombre': nombreIngrediente },
+      { $set: { 'ingredientes.$.cantidad': nuevaCantidad } }
+    );
+
+    res.status(200).json({ message: 'Cantidad del ingrediente actualizada' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al actualizar la cantidad del ingrediente', error: error.message });
+  }
+});
+
+// Ruta para marcar ingredientes como comprados o no comprados
+app.put('/lista-de-compras/marcar-comprado', authenticateToken, async (req, res) => {
+  const { nombreIngrediente, comprado } = req.body;
+
+  if (!nombreIngrediente || comprado === undefined) {
+    return res.status(400).json({ message: 'Debe proporcionar un nombre de ingrediente y si está comprado o no' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Marcar el ingrediente como comprado o no comprado en la lista de compras
+    await db.collection('listasDeCompras').updateOne(
+      { usuarioId, 'ingredientes.nombre': nombreIngrediente },
+      { $set: { 'ingredientes.$.comprado': comprado } }
+    );
+
+    res.status(200).json({ message: 'Estado de compra del ingrediente actualizado' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al actualizar el estado de compra del ingrediente', error: error.message });
+  }
+});
+
+// Ruta para transferir ingredientes comprados al almacén
+app.put('/lista-de-compras/transferir-al-almacen', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Obtener la lista de compras del usuario
+    const listaDeCompras = await db.collection('listasDeCompras').findOne({ usuarioId, completada: false });
+
+    if (!listaDeCompras) {
+      return res.status(404).json({ message: 'No tienes lista de compras activa' });
+    }
+
+    // Filtrar solo los ingredientes marcados como comprados
+    const ingredientesComprados = listaDeCompras.ingredientes.filter(ingrediente => ingrediente.comprado);
+
+    // Transferir los ingredientes al almacén del usuario
+    for (const ingrediente of ingredientesComprados) {
+      const ingredienteEnAlmacen = await db.collection('almacen').findOne({
+        usuarioId,
+        'ingredientes.nombre': ingrediente.nombre
+      });
+
+      if (ingredienteEnAlmacen) {
+        // Si el ingrediente ya está en el almacén, aumentar la cantidad
+        await db.collection('almacen').updateOne(
+          { usuarioId, 'ingredientes.nombre': ingrediente.nombre },
+          { $inc: { 'ingredientes.$.cantidad': ingrediente.cantidad } }
+        );
+      } else {
+        // Si el ingrediente no está en el almacén, agregarlo
+        await db.collection('almacen').updateOne(
+          { usuarioId },
+          { $push: { ingredientes: { nombre: ingrediente.nombre, cantidad: ingrediente.cantidad, perecedero: true } } }
+        );
+      }
+    }
+
+    // Marcar la lista de compras como completada o eliminarla
+    await db.collection('listasDeCompras').deleteOne({ usuarioId });
+
+    res.status(200).json({ message: 'Ingredientes transferidos al almacén y lista de compras eliminada' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al transferir los ingredientes al almacén', error: error.message });
+  }
+});
+
+// Ruta para eliminar un ingrediente específico de la lista de compras
+app.delete('/lista-de-compras/eliminar-ingrediente', authenticateToken, async (req, res) => {
+  const { nombreIngrediente } = req.body;
+
+  if (!nombreIngrediente) {
+    return res.status(400).json({ message: 'Debe proporcionar un nombre de ingrediente' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Eliminar el ingrediente de la lista de compras
+    await db.collection('listasDeCompras').updateOne(
+      { usuarioId },
+      { $pull: { ingredientes: { nombre: nombreIngrediente } } }
+    );
+
+    res.status(200).json({ message: 'Ingrediente eliminado de la lista de compras' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al eliminar el ingrediente de la lista de compras', error: error.message });
+  }
+});
+
+// Marcar todos los ingredientes de la lista de compras como comprados
+app.put('/lista-de-compras/marcar-todo-comprado', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Buscar la lista de compras del usuario
+    const listaDeCompras = await db.collection('listasDeCompras').findOne({ usuarioId, completada: false });
+
+    if (!listaDeCompras) {
+      return res.status(404).json({ message: 'No tienes lista de compras activa' });
+    }
+
+    // Marcar todos los ingredientes como comprados
+    await db.collection('listasDeCompras').updateOne(
+      { usuarioId, completada: false },
+      { $set: { 'ingredientes.$[].comprado': true } } // Actualizar todos los ingredientes a "comprado: true"
+    );
+
+    res.status(200).json({ message: 'Todos los ingredientes marcados como comprados' });
+  } catch (error) {
+    console.error('Error al marcar todos los ingredientes como comprados:', error.message);
+    res.status(500).json({ message: 'Error al marcar los ingredientes como comprados' });
+  }
+});
+
+// Eliminar toda la lista de compras
+app.delete('/lista-de-compras/eliminar-toda', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Eliminar la lista de compras del usuario
+    const result = await db.collection('listasDeCompras').deleteOne({ usuarioId });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'No tienes lista de compras para eliminar' });
+    }
+
+    res.status(200).json({ message: 'Lista de compras eliminada exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar la lista de compras:', error.message);
+    res.status(500).json({ message: 'Error al eliminar la lista de compras' });
+  }
+});
 
 //============================================DESPERDICIO DE ALIMENTOS=============================================
 //Funcion para revisar desperdicio de alimentos en almacen
-const cron = require('node-cron');
+// const cron = require('node-cron');
 
-// Tarea programada para revisar cada semana los alimentos perecederos
-cron.schedule('0 0 * * 0', async () => {
-  try {
-    const db = await connectToDatabase(); // Conectar a la base de datos
-    const todosLosAlmacenes = await db.collection('almacen').find({}).toArray();
+// // Tarea programada para revisar cada semana los alimentos perecederos
+// cron.schedule('0 0 * * 0', async () => {
+//   try {
+//     const db = await connectToDatabase(); // Conectar a la base de datos
+//     const todosLosAlmacenes = await db.collection('almacen').find({}).toArray();
     
-    todosLosAlmacenes.forEach(almacen => {
-      almacen.ingredientes.forEach(ingrediente => {
-        if (ingrediente.perecedero && new Date() - new Date(ingrediente.fechaIngreso) > 7 * 24 * 60 * 60 * 1000) {
-          // Registrar desperdicio si no fue consumido en una semana
-          console.log(`Ingrediente ${ingrediente.nombre} se considera desperdicio`);
-        }
-      });
-    });
-  } catch (error) {
-    console.error('Error al procesar el desperdicio:', error);
-  }
-});
+//     todosLosAlmacenes.forEach(almacen => {
+//       almacen.ingredientes.forEach(ingrediente => {
+//         if (ingrediente.perecedero && new Date() - new Date(ingrediente.fechaIngreso) > 7 * 24 * 60 * 60 * 1000) {
+//           // Registrar desperdicio si no fue consumido en una semana
+//           console.log(`Ingrediente ${ingrediente.nombre} se considera desperdicio`);
+//         }
+//       });
+//     });
+//   } catch (error) {
+//     console.error('Error al procesar el desperdicio:', error);
+//   }
+// });
 
 //============================================TESTING DESPERDICIO DE ALIMENTOS=============================================
 app.get('/test-desperdicio', async (req, res) => {
@@ -770,3 +1206,282 @@ app.get('/desperdicio-semanal', authenticateToken, async (req, res) => {
   }
 });
 */
+
+
+//=============================================NOTICIAS DE COMIDA=======================================
+// Ruta para obtener noticias
+app.get('/noticias', async (req, res) => {
+  try {
+    const noticias = await getNoticias();
+    res.json(noticias);
+  } catch (error) {
+    res.status(500).send('Error al obtener noticias');
+  }
+});
+
+//============================================NOTIFICACIONES=============================================
+//=======================================================================================================
+// Se envia una notificacion al usuario con los nombres de los ingredientes que se han agotado en su almacen 
+app.get('/notificaciones', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+    const almacen = await db.collection('almacen').findOne({ usuarioId });
+    
+    const ingredientesAgotados = almacen.ingredientes
+      .filter(ingrediente => ingrediente.cantidad === 0)
+      .map(ingrediente => ingrediente.nombre);  // Solo nombres
+
+    if (ingredientesAgotados.length > 0) {
+      return res.status(200).json({ message: 'Tienes ingredientes agotados', ingredientesAgotados });
+    } else {
+      return res.status(200).json({ message: 'No tienes ingredientes agotados' });
+    }
+  } catch (error) {
+    console.error('Error al obtener notificaciones:', error.message);
+    res.status(500).json({ error: 'Error al obtener notificaciones' });
+  }
+});
+
+//=====================================VALORAR RECETA==========================================
+//==============================================================================================
+app.post('/receta/valorar', authenticateToken, async (req, res) => {
+  const { recipeId, valoracion } = req.body;
+
+  // Verificar que la valoración sea un número entero entre 1 y 5
+  if (!recipeId || !Number.isInteger(valoracion) || valoracion < 1 || valoracion > 5) {
+    return res.status(400).json({ message: 'La valoración debe estar entre 1 y 5 y debe ser un número entero' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Guardar la valoración del usuario para la receta
+    await db.collection('valoraciones').updateOne(
+      { usuarioId, recipeId },
+      { $set: { valoracion } },
+      { upsert: true }
+    );
+
+    res.status(200).json({ message: 'Receta valorada exitosamente' });
+  } catch (error) {
+    console.error('Error al valorar receta:', error.message);
+    res.status(500).json({ message: 'Error al valorar la receta' });
+  }
+});
+
+//==============================GUARDAR/ELIMINAR RECETA=======================================
+//============================================================================================
+app.post('/recetas/guardar', authenticateToken, async (req, res) => {
+  const { recipeId } = req.body;
+
+  try {
+    const db = await connectToDatabase();
+
+    // Obtener la receta desde Spoonacular
+    const receta = await obtenerRecetaDeSpoonacular(recipeId);
+
+    if (!receta) {
+      return res.status(404).json({ message: 'Receta no encontrada' });
+    }
+
+    // Traducir el título y los ingredientes
+    const tituloTraducido = await translateText(receta.title, 'es');
+    const ingredientesTraducidos = await Promise.all(
+      receta.extendedIngredients.map(async (ingrediente) => {
+        const nombreTraducido = await translateText(ingrediente.name, 'es');
+        return { ...ingrediente, name: nombreTraducido }; // Guardar el ingrediente traducido
+      })
+    );
+
+    // Preparar el objeto receta traducido
+    const recetaGuardada = {
+      recipeId: receta.id,
+      title: tituloTraducido,
+      sourceUrl: receta.sourceUrl,
+      ingredients: ingredientesTraducidos,
+      instructions: receta.instructions,
+      readyInMinutes: receta.readyInMinutes,
+      servings: receta.servings,
+    };
+
+    // Guardar la receta en la colección de recetas guardadas
+    await db.collection('recetasGuardadas').insertOne({
+      usuarioId: new ObjectId(req.user.id),
+      receta: recetaGuardada,
+    });
+
+    res.status(200).json({ message: 'Receta guardada exitosamente en español', receta: recetaGuardada });
+  } catch (error) {
+    console.error('Error al guardar la receta:', error.message);
+    res.status(500).json({ message: 'Error al guardar la receta' });
+  }
+});
+
+//VER RECETAS GUARDADAS 
+// Ruta para obtener las recetas guardadas del usuario (Paginacion para mejorar rendimiento)
+app.get('/recetas/guardadas', authenticateToken, async (req, res) => {
+  const page = parseInt(req.query.page) || 1;  // Número de página (por defecto 1)
+  const limit = parseInt(req.query.limit) || 10;  // Número de recetas por página (por defecto 10)
+
+  try {
+    const db = await connectToDatabase();
+
+    const recetasGuardadas = await db.collection('recetasGuardadas')
+      .find({ usuarioId: new ObjectId(req.user.id) })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray();
+
+    if (!recetasGuardadas || recetasGuardadas.length === 0) {
+      return res.status(404).json({ message: 'No tienes recetas guardadas' });
+    }
+
+    res.status(200).json({ recetas: recetasGuardadas });
+  } catch (error) {
+    console.error('Error al obtener las recetas guardadas:', error.message);
+    res.status(500).json({ message: 'Error al obtener las recetas guardadas' });
+  }
+});
+
+// ELIMINAR RECETA GUARDADA
+app.delete('/receta/eliminar-guardada', authenticateToken, async (req, res) => {
+  const { recipeId } = req.body;
+
+  if (!recipeId) {
+    return res.status(400).json({ message: 'Se requiere un ID de receta' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Asegúrate de comparar `recipeId` como número.
+    const result = await db.collection('recetasGuardadas').deleteOne({
+      usuarioId: usuarioId,
+      'receta.recipeId': Number(recipeId) // Convertir a número para la comparación
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Receta no encontrada en la lista de guardadas' });
+    }
+
+    res.status(200).json({ message: 'Receta eliminada exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar receta guardada:', error.message);
+    res.status(500).json({ message: 'Error al eliminar la receta guardada' });
+  }
+});
+
+//=====================================COMPARTIR RECETA========================================
+//==============================================================================================
+app.get('/receta/compartir/:id', authenticateToken, async (req, res) => {
+  const recipeId = req.params.id;
+
+  try {
+    const db = await connectToDatabase();
+    const receta = await obtenerRecetaDeSpoonacular(recipeId);
+
+    if (!receta) {
+      return res.status(404).json({ message: 'Receta no encontrada' });
+    }
+
+    // Traducir el título de la receta al español usando la API de Google Translate
+    const tituloTraducido = await translateText(receta.title, 'es');
+
+    const link = `https://api.whatsapp.com/send?text=¡Mira esta receta increíble! ${tituloTraducido} - ${receta.sourceUrl}`;
+    
+    res.status(200).json({ message: 'Enlace generado exitosamente', link });
+  } catch (error) {
+    console.error('Error al generar el enlace para compartir:', error.message);
+    res.status(500).json({ message: 'Error al generar el enlace para compartir' });
+  }
+});
+
+//========================================SALUD=============================================
+// Salud
+// Ruta para actualizar los datos de salud del usuario
+// app.put('/perfil/health', authenticateToken, async (req, res) => {
+//   const { weight, height, imc, dietRecommendation } = req.body;
+
+//   if (!weight || !height || !imc || !dietRecommendation) {
+//     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+//   }
+
+//   try {
+//     // Update the user's health data in MongoDB
+//     const result = await usersCollection.updateOne(
+//       { _id: new ObjectId(req.user.id) },  // Use the ID from the authenticated user
+//       { 
+//         $set: { 
+//           weight: weight, 
+//           height: height, 
+//           imc: imc, 
+//           dietRecommendation: dietRecommendation 
+//         }
+//       }
+//     );
+
+//     if (result.modifiedCount === 0) {
+//       return res.status(404).json({ message: 'Usuario no encontrado o sin cambios' });
+//     }
+
+//     res.status(200).json({ message: 'Datos de salud actualizados' });
+//   } catch (error) {
+//     console.error('Error al actualizar los datos de salud:', error);
+//     res.status(500).json({ message: 'Error al actualizar los datos de salud' });
+//   }
+// });
+
+// Salud
+// Ruta para actualizar los datos de salud del usuario
+app.put('/perfil/health', authenticateToken, async (req, res) => {
+  const { weight, height, imc, dietRecommendation } = req.body;
+
+  if (!weight || !height || !imc || !dietRecommendation) {
+    return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  }
+
+  try {
+    const result = await usersCollection.updateOne(
+      { _id: new ObjectId(req.user.id) },  // Usar el ID del usuario autenticado
+      { 
+        $set: { 
+          'healthData.weight': weight, 
+          'healthData.height': height, 
+          'healthData.imc': imc, 
+          'healthData.dietRecommendation': dietRecommendation 
+        }
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado o sin cambios' });
+    }
+
+    res.status(200).json({ message: 'Datos de salud actualizados' });
+  } catch (error) {
+    console.error('Error al actualizar los datos de salud:', error);
+    res.status(500).json({ message: 'Error al actualizar los datos de salud' });
+  }
+});
+
+// Ruta protegida para acceder al perfil de usuario solo con token válido
+app.get('/perfil', authenticateToken, async (req, res) => {
+  try {
+    const usuario = await usersCollection.findOne({ _id: req.user.id });
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    res.status(200).json({ 
+      nombre: usuario.nombre,
+      email: usuario.email,
+      healthData: usuario.healthData 
+    });
+  } catch (error) {
+    console.error('Error al obtener el perfil del usuario:', error);
+    res.status(500).json({ message: 'Error al obtener el perfil' });
+  }
+});
+

@@ -9,6 +9,7 @@ import MetaScreen from '../screens/MetaScreen/MetaScreen';
 import AlmuerzoScreen from '../screens/AlmuerzoScreen/AlmuerzoScreen';
 import CenaScreen from '../screens/CenaScreen/CenaScreen';
 import ReposteriaScreen from '../screens/ReposteriaScreen/ReposteriaScreen';
+import TendenciaScreen from '../screens/TendenciaScreen/TendenciaScreen';
 
 const Stack = createStackNavigator();
 
@@ -75,7 +76,10 @@ const HomeStackNavigator = () => {
       <Stack.Screen 
         name="Recipe" 
         component={RecipeScreen}
-        options={{ headerShown: false }}  // Ocultar el header en Recipe
+        options={{
+          headerShown: false,  // Oculta el header
+          tabBarStyle: { display: 'none' }  // Asegura que el Bottom Tab esté oculto
+        }}
       />
       <Stack.Screen 
         name="ShoppingList" 
@@ -111,6 +115,18 @@ const HomeStackNavigator = () => {
         headerTintColor: '#fff',
         headerTitleAlign: 'center',
       }}
+      />
+      <Stack.Screen 
+        name="Tendencias" 
+        component={TendenciaScreen} 
+        options={{
+          title: 'TENDENCIAS',
+          headerStyle: {
+            backgroundColor: '#619537',
+          },
+          headerTintColor: '#fff',
+          headerTitleAlign: 'center',
+        }}
       />
     </Stack.Navigator>
   );
