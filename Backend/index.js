@@ -1485,7 +1485,7 @@ app.get('/perfil', authenticateToken, async (req, res) => {
   }
 });
 
-// ruta admin
+// ruta admin -- dejar aca
 const cors = require('cors');
 app.use(cors());
 const adminRoutes = require('./adminRoutes');

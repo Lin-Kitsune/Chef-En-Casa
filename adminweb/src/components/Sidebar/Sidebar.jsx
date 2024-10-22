@@ -31,7 +31,7 @@ const Sidebar = () => {
           } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
           onClick={() => setActive('Usuarios')}
         >
-          Usuarios
+          <Link to="/usuarios">Usuarios</Link> 
         </li>
         <li
           className={`${
