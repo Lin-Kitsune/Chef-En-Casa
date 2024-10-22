@@ -1485,3 +1485,8 @@ app.get('/perfil', authenticateToken, async (req, res) => {
   }
 });
 
+// ruta admin
+const cors = require('cors');
+app.use(cors());
+const adminRoutes = require('./adminRoutes');
+app.use('/api/admin', adminRoutes);
