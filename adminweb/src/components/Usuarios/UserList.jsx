@@ -12,6 +12,7 @@ const UserList = () => {
   const [selectedUser, setSelectedUser] = useState(null); // Usuario seleccionado para editar
   const [newUser, setNewUser] = useState({ nombre: '', email: '', role: 'user', password: '' }); // Estado para el nuevo usuario
 
+  // Obtener la lista de usuarios al cargar el componente
   useEffect(() => {
     const fetchUsers = async () => {
       const userList = await getAllUsers();
@@ -29,59 +30,56 @@ const UserList = () => {
     }
   };
 
-  // Función para abrir el modal de edición
   const openEditModal = (user) => {
     setSelectedUser(user);
     setEditUserModalVisible(true);
   };
 
-  // Función para cerrar el modal de edición
   const closeEditModal = () => {
     setSelectedUser(null);
     setEditUserModalVisible(false);
   };
 
-  // Función para abrir el modal de agregar
   const openAddUserModal = () => {
     setNewUser({ nombre: '', email: '', role: 'user', password: '' });
     setAddUserModalVisible(true);
   };
 
-  // Función para cerrar el modal de agregar
   const closeAddUserModal = () => {
     setAddUserModalVisible(false);
   };
 
-  // Función para actualizar un usuario
   const handleUpdateUser = async () => {
     if (selectedUser) {
       await updateUser(selectedUser._id, selectedUser);
       setUsers(users.map(user => (user._id === selectedUser._id ? selectedUser : user)));
-      closeEditModal(); // Cerrar el modal después de actualizar
+      closeEditModal();
     }
   };
 
-  // Función para crear un nuevo usuario
   const handleCreateUser = async () => {
     try {
-      const createdUser = await createUser(newUser);
-      setUsers([...users, createdUser]); // Agregar el nuevo usuario a la lista
-      closeAddUserModal(); // Cerrar el modal después de agregar
+      const createdUser = await createUser(newUser);  // Llamada a la función para crear el usuario
+      setUsers([...users, createdUser]);  // Agregar el nuevo usuario a la lista
+      closeAddUserModal();
     } catch (error) {
       console.error("Error al crear usuario:", error);
     }
-  };
+  };  
 
+  // Filtrar los usuarios en base a la búsqueda
   const filteredUsers = users.filter(user =>
-    user.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+    user.nombre && user.nombre.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalUsers = users.length;  // <<--- Cálculo del total de usuarios (CAMBIO 1)
 
   if (loading) return <div>Loading...</div>;
 
   return (
     <div className="p-5">
-      {/* Barra de búsqueda y botón "Agregar Usuario" */}
-      <div className="flex items-center mb-6 space-x-4">
+      {/* Barra de búsqueda, total de usuarios y botón "Agregar Usuario" */}
+      <div className="flex justify-between items-center mb-6"> {/* CAMBIO 2 */}
         <div className="relative flex items-center w-full max-w-lg">
           <FontAwesomeIcon icon={faSearch} className="absolute left-3 text-gray-400" />
           <input
@@ -91,6 +89,11 @@ const UserList = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div>
+
+        {/* Mostrar el total de usuarios */}
+        <div className="text-lg font-semibold">
+          Total de usuarios: {totalUsers}  {/* CAMBIO 3: Muestra el total de usuarios */}
         </div>
 
         {/* Botón para abrir el modal de agregar usuario */}
@@ -111,15 +114,12 @@ const UserList = () => {
               <p className="text-lg font-semibold">Nombre: {user.nombre}</p>
               <p className="text-gray-600">Correo: {user.email}</p>
               <div className="mt-4 flex space-x-4">
-                {/* Botón para editar usuario */}
                 <button
                   className="bg-verde-chef text-white py-2 px-4 rounded-full font-bold hover:bg-green-600 transition duration-300"
                   onClick={() => openEditModal(user)}
                 >
                   <FontAwesomeIcon icon={faEdit} /> Editar
                 </button>
-
-                {/* Botón para eliminar usuario */}
                 <button
                   onClick={() => handleDelete(user._id)}
                   className="bg-red-500 text-white py-2 px-4 rounded-full font-bold hover:bg-red-600 transition duration-300"
