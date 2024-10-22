@@ -7,7 +7,8 @@ module.exports = {
     extend: {
       colors: {
         'verde-chef': '#619537', // Nombre personalizado para tu color
-        'amarillo-chef':'#F5E7A0'
+        'amarillo-chef':'#F5E7A0',
+        'chef': '#8DB138'
       },
     },
   },
