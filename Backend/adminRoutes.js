@@ -47,4 +47,19 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Ruta para obtener todos los usuarios
+router.get('/usuarios', async (req, res) => {
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const usersCollection = db.collection('usuarios');
+    const usuarios = await usersCollection.find({}).toArray();
+    res.status(200).json(usuarios);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener usuarios', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
 module.exports = router;
