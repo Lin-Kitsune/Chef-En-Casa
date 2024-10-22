@@ -27,14 +27,14 @@ export const createUser = async (userData) => {
 
 // Actualizar usuario
 export const updateUser = async (id, userData) => {
-    const token = getToken();
-    const response = await axios.put(`${API_URL}/admin/usuarios/${id}`, userData, {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
+    const token = await getToken();
+    const response = await axios.put(`http://localhost:4000/admin/usuarios/${id}`, userData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data;
-};
+  };  
 
 // Eliminar usuario
 export const deleteUser = async (id) => {
