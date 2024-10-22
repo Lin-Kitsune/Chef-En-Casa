@@ -6,7 +6,7 @@ const Sidebar = () => {
   const [active, setActive] = useState('Recetas');
 
   return (
-    <div className="w-56 bg-white border-t-8 border-[#619537] p-5 absolute top-[540px] z-50">
+    <div className="w-56 bg-white border-t-8 border-[#619537] p-5 absolute top-[490px] z-50">
       <h2 className="text-2xl font-bold mb-5 text-black text-center">MENÚ</h2>
       <ul className="space-y-5">
         <li
