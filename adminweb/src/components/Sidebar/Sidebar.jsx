@@ -41,6 +41,15 @@ const Sidebar = () => {
         >
           <Link to="/meta">Meta</Link> {/* Agregar enlace a Meta */}
         </li>
+        {/* Nueva opción Reclamos */}
+        <li
+          className={`${
+            active === 'Reclamos' ? 'bg-[#619537] text-white' : 'text-black'
+          } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
+          onClick={() => setActive('Reclamos')}
+        >
+          <Link to="/reclamos">Reclamos</Link> {/* Agregar enlace a Reclamos */}
+        </li>
       </ul>
     </div>
   );

@@ -9,8 +9,7 @@ import Meta from './components/Meta/Meta.jsx';
 import Login from './components/Login/Login.jsx';  
 import PrivateRoute from './components/PrivateRoute/PrivateRoute.jsx'; 
 import UserList from './components/Usuarios/UserList.jsx';   // Importar UserList
-import UserForm from './components/Usuarios/UserForm.jsx';   // Importar UserForm
-import DashboardStats from './components/Usuarios/DashboardStats.jsx';  // Importar DashboardStats
+import Consultas from './components/Consultas/Consultas.jsx';
 
 function App() {
   return (
@@ -55,8 +54,7 @@ const ProtectedLayout = () => {
               <Route path="/ingredientes" element={<Ingredientes />} />
               <Route path="/meta" element={<Meta />} />
               <Route path="/usuarios" element={<UserList />} />  {/* Lista de usuarios */}
-              <Route path="/crear-usuario" element={<UserForm />} />  {/* Crear usuario */}
-              <Route path="/estadisticas" element={<DashboardStats />} />  {/* Estadísticas */}
+              <Route path="/reclamos" element={<Consultas/>} />
               {/* Puedes añadir más rutas aquí, por ejemplo ingredientes, usuarios, etc. */}
             </Routes>
           </div>
