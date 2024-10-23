@@ -2,19 +2,24 @@ import 'react-native-gesture-handler'; // Necesario para gestos de navegación
 import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
-import SplashScreen from './screens/SplashScreen/SplashScreen';  // Pantalla de Splash
-import LoginScreen from './screens/LoginScreen/LoginScreen';  // Pantalla de Login
-import RegisterScreen from './screens/RegisterScreen/RegisterScreen';  // Pantalla de Registro
-import DrawerNavigator from './navigation/DrawerNavigator';  // Navegación con el Drawer
+import SplashScreen from './screens/SplashScreen/SplashScreen';  
+import LoginScreen from './screens/LoginScreen/LoginScreen';  
+import RegisterScreen from './screens/RegisterScreen/RegisterScreen';  
+import DrawerNavigator from './navigation/DrawerNavigator';  
 
 const Stack = createStackNavigator();
 
 const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Estado de autenticación
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Función que se pasa para marcar login exitoso
+  // Función para marcar login exitoso
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
+  };
+
+  // Función para manejar el logout
+  const handleLogout = () => {
+    setIsAuthenticated(false);
   };
 
   return (
@@ -22,7 +27,7 @@ const App = () => {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,  // Estilo de animación
+          cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
         }}
       >
         {!isAuthenticated ? (
@@ -34,8 +39,11 @@ const App = () => {
             </Stack.Screen>
           </>
         ) : (
-          // Se renderiza el DrawerNavigator cuando el usuario está autenticado
-          <Stack.Screen name="MainApp" component={DrawerNavigator} screenOptions={{ headerShown: false }} />
+          
+          // Pasar handleLogout al DrawerNavigator para manejar el cierre de sesión
+          <Stack.Screen name="MainApp">
+            {props => <DrawerNavigator {...props} handleLogout={handleLogout} />}
+          </Stack.Screen>
         )}
       </Stack.Navigator>
     </NavigationContainer>
