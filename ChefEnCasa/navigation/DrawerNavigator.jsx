@@ -1,12 +1,12 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { TouchableOpacity } from 'react-native'; 
-import Icon from 'react-native-vector-icons/FontAwesome';  
-import CustomDrawerContent from '../screens/Sidebar/CustomDrawerContent'; // Importa el Drawer personalizado
+import { TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import CustomDrawerContent from '../screens/Sidebar/CustomDrawerContent'; 
 import NewsScreen from '../screens/NewsScreen/NewsScreen';
-import BottomTabNavigator from './BottomTabNavigator'; // Importa el BottomTabNavigator
-import { createStackNavigator } from '@react-navigation/stack';  // Importa Stack Navigator para manejar el header con flecha
-import PointsStack from './PointsStack';  // Stack de puntos
+import BottomTabNavigator from './BottomTabNavigator'; 
+import { createStackNavigator } from '@react-navigation/stack';
+import PointsStack from './PointsStack'; 
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
@@ -24,7 +24,6 @@ const NewsStack = () => {
           },
           headerTintColor: '#fff',
           headerTitleAlign: 'center',
-          // Mostrar la flecha de retroceso
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Icon name="arrow-left" size={24} color="#fff" style={{ marginLeft: 10 }} />
@@ -36,10 +35,10 @@ const NewsStack = () => {
   );
 };
 
-const DrawerNavigator = () => {
+const DrawerNavigator = ({ handleLogout }) => { // Asegúrate de recibir `handleLogout` como prop aquí
   return (
     <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawerContent {...props} />} // Sidebar personalizado
+      drawerContent={(props) => <CustomDrawerContent {...props} handleLogout={handleLogout} />} // Pasar `handleLogout` aquí
       screenOptions={{
         headerShown: false,
         drawerStyle: {
@@ -48,7 +47,6 @@ const DrawerNavigator = () => {
         },
       }}
     >
-      {/* El BottomTabNavigator está dentro del Drawer */}
       <Drawer.Screen 
         name="Home" 
         component={BottomTabNavigator} 
@@ -58,15 +56,14 @@ const DrawerNavigator = () => {
         }} 
       />
       
-      {/* Usa NewsStack para manejar la pantalla de noticias */}
       <Drawer.Screen 
         name="NewsStack" 
         component={NewsStack} 
         options={{
-          headerShown: false, // El header se maneja en el NewsStack
+          headerShown: false,
         }}
       />
-      {/* PointsStack: Maneja la navegación para Puntos */}
+      
       <Drawer.Screen 
         name="PointsStack" 
         component={PointsStack} 
