@@ -12,6 +12,7 @@ import UserList from './components/Usuarios/UserList.jsx';   // Importar UserLis
 import Consultas from './components/Consultas/Consultas.jsx';
 import Notificaciones from './components/Notificaciones/Notificaciones.jsx';
 import Convenios from './components/Convenios/Convenios.jsx';
+import GraficosOperativos from './components/Graficos/GraficosOperativos.jsx';
 
 function App() {
   return (
@@ -50,7 +51,7 @@ const ProtectedLayout = () => {
           <Sidebar />
 
           {/* El contenido principal cambia según la ruta */}
-          <div className="flex-1 pl-56 pt-1">
+          <div className="flex-1 pl-1 pt-1">
             <Routes>
               <Route path="/recetas" element={<Recetas />} />
               <Route path="/ingredientes" element={<Ingredientes />} />
@@ -59,6 +60,7 @@ const ProtectedLayout = () => {
               <Route path="/reclamos" element={<Consultas/>} />
               <Route path="/notificaciones" element={<Notificaciones/>} />
               <Route path="/convenios" element={<Convenios/>} />
+              <Route path="/graficos" element={<GraficosOperativos/>} />
               {/* Puedes añadir más rutas aquí, por ejemplo ingredientes, usuarios, etc. */}
             </Routes>
           </div>

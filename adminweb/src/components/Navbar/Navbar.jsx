@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserCircle } from '@fortawesome/free-solid-svg-icons';
+import { faUserCircle, faSignOutAlt  } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
@@ -30,19 +30,20 @@ const Navbar = () => {
           {/* Menú desplegable */}
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-              <div className="p-4">
+              <div className="p-3">
                 {/* Aquí mostrarías el correo del usuario */}
                 <p className="text-sm text-gray-700 font-semibold">Correo:</p>
                 <p className="text-sm text-gray-600">admin@chefencasa.com</p>
               </div>
               <hr className="my-2" />
               {/* Botón de Cerrar Sesión */}
-              <div className="p-2">
+              <div className="p-1">
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100 rounded-lg"
+                  className="w-full text-left px-2 py-1 text-sm text-red-500 hover:bg-gray-100 rounded-lg"
                 >
-                  Cerrar Sesión
+                  <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
+                   Cerrar Sesión
                 </button>
               </div>
             </div>
