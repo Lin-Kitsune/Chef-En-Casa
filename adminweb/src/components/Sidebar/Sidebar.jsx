@@ -50,6 +50,15 @@ const Sidebar = () => {
         >
           <Link to="/reclamos">Reclamos</Link> {/* Agregar enlace a Reclamos */}
         </li>
+        {/* Nueva Opción: Notificaciones */}
+        <li
+          className={`${
+            active === 'Notificaciones' ? 'bg-[#619537] text-white' : 'text-black'
+          } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
+          onClick={() => setActive('Notificaciones')}
+        >
+          <Link to="/notificaciones">Notificaciones</Link>
+        </li>
       </ul>
     </div>
   );

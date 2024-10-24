@@ -10,7 +10,7 @@ import Login from './components/Login/Login.jsx';
 import PrivateRoute from './components/PrivateRoute/PrivateRoute.jsx'; 
 import UserList from './components/Usuarios/UserList.jsx';   // Importar UserList
 import Consultas from './components/Consultas/Consultas.jsx';
-
+import Notificaciones from './components/Notificaciones/Notificaciones.jsx';
 function App() {
   return (
     <Router>
@@ -55,6 +55,7 @@ const ProtectedLayout = () => {
               <Route path="/meta" element={<Meta />} />
               <Route path="/usuarios" element={<UserList />} />  {/* Lista de usuarios */}
               <Route path="/reclamos" element={<Consultas/>} />
+              <Route path="/notificaciones" element={<Notificaciones/>} />
               {/* Puedes añadir más rutas aquí, por ejemplo ingredientes, usuarios, etc. */}
             </Routes>
           </div>
