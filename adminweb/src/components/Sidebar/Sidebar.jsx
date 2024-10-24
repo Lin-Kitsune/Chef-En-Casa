@@ -33,14 +33,6 @@ const Sidebar = () => {
         >
           <Link to="/usuarios">Usuarios</Link> 
         </li>
-        <li
-          className={`${
-            active === 'Meta' ? 'bg-[#619537] text-white' : 'text-black'
-          } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
-          onClick={() => setActive('Meta')}
-        >
-          <Link to="/meta">Meta</Link> {/* Agregar enlace a Meta */}
-        </li>
         {/* Nueva opción Reclamos */}
         <li
           className={`${
@@ -58,6 +50,23 @@ const Sidebar = () => {
           onClick={() => setActive('Notificaciones')}
         >
           <Link to="/notificaciones">Notificaciones</Link>
+        </li>
+        <li
+          className={`${
+            active === 'Convenios' ? 'bg-[#619537] text-white' : 'text-black'
+          } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
+          onClick={() => setActive('Convenios')}
+        >
+          <Link to="/convenios">Convenios (Socios)</Link>
+        </li>
+
+        <li
+          className={`${
+            active === 'Meta' ? 'bg-[#619537] text-white' : 'text-black'
+          } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
+          onClick={() => setActive('Meta')}
+        >
+          <Link to="/meta">Meta</Link> {/* Agregar enlace a Meta */}
         </li>
       </ul>
     </div>
