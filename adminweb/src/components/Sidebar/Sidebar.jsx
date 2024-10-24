@@ -6,7 +6,7 @@ const Sidebar = () => {
   const [active, setActive] = useState('Recetas');
 
   return (
-    <div className="w-56 bg-white border-t-8 border-[#619537] p-5 absolute top-[490px] z-50">
+    <div className="relative w-50 bg-white border-t-8 border-[#619537] p-5 z-50 mt-4 lg:mt-0">
       <h2 className="text-2xl font-bold mb-5 text-black text-center">MENÚ</h2>
       <ul className="space-y-5">
         <li
@@ -68,6 +68,15 @@ const Sidebar = () => {
         >
           <Link to="/meta">Meta</Link> {/* Agregar enlace a Meta */}
         </li>
+         {/* Nueva opción: Gráficos Operativos */}
+         <li
+            className={`${
+              active === 'Graficos' ? 'bg-[#619537] text-white' : 'text-black'
+            } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
+            onClick={() => setActive('Graficos')}
+          >
+            <Link to="/graficos">Gráficos Operativos</Link>
+          </li>
       </ul>
     </div>
   );
