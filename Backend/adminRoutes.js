@@ -4,12 +4,15 @@ const jwt = require('jsonwebtoken');
 const { MongoClient, ObjectId } = require('mongodb');
 const dotenv = require('dotenv');
 const { authenticateToken, checkRole } = require('./middleware/authMiddleware'); 
+const multer = require('multer'); // Middleware para manejar archivos
+const fs = require('fs');
+const path = require('path');
 
 dotenv.config();
 const router = express.Router();
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
-const SECRET_KEY = process.env.SECRET_KEY || 'supersecretkey'; 
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey'; 
 
 // Ruta para login de Admin
 router.post('/login', async (req, res) => {
@@ -34,8 +37,8 @@ router.post('/login', async (req, res) => {
     }
 
     // Generar un token JWT para el Admin
-    const token = jwt.sign({ id: adminUser._id, role: adminUser.role }, SECRET_KEY, {
-      expiresIn: '2h',  
+    const token = jwt.sign({ id: adminUser._id, role: adminUser.role }, process.env.JWT_SECRET, {
+      expiresIn: '2h',
     });
 
     // Enviar el token al cliente (admin frontend)
@@ -191,5 +194,493 @@ router.post('/usuarios', authenticateToken, checkRole('admin'), async (req, res)
     await client.close(); // Siempre cierra la conexión con la base de datos
   }
 });
-
 module.exports = router;
+
+// Ruta para obtener todos los reclamos (admin)
+router.get('/reclamos', authenticateToken, checkRole('admin'), async (req, res) => {
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const reclamosCollection = db.collection('reclamos');
+
+    // Obtener todos los reclamos
+    const reclamos = await reclamosCollection.find({}).toArray();
+    
+    // Respuesta al frontend
+    res.status(200).json(reclamos);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener los reclamos', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+// Ruta para actualizar un reclamo (admin)
+router.put('/reclamos/:id', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { id } = req.params;
+  const { estado, respuesta } = req.body;
+
+  if (!estado) {
+    return res.status(400).json({ message: 'El estado es obligatorio' });
+  }
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const reclamosCollection = db.collection('reclamos');
+
+    const result = await reclamosCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { estado, respuesta, fechaRespuesta: new Date() } } // Cambiar estado y agregar respuesta
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Reclamo no encontrado o sin cambios' });
+    }
+
+    res.status(200).json({ message: 'Reclamo actualizado con éxito' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al actualizar el reclamo', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+
+// Verificar si la carpeta 'uploads' existe, si no, crearla
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+// Configuración de multer para manejar las imágenes
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage });
+
+//===============================================
+// CRUD Categorías
+//===============================================
+
+// Ruta para agregar una nueva categoría
+router.post('/categorias', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { nombre } = req.body;
+
+  if (!nombre) {
+    return res.status(400).json({ message: 'El nombre de la categoría es obligatorio' });
+  }
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const categoriasCollection = db.collection('categorias');
+
+    // Verificar si la categoría ya existe
+    const categoriaExistente = await categoriasCollection.findOne({ nombre });
+    if (categoriaExistente) {
+      return res.status(400).json({ message: 'La categoría ya existe' });
+    }
+
+    // Crear nueva categoría
+    const nuevaCategoria = {
+      nombre,
+      fechaCreacion: new Date(),
+    };
+
+    await categoriasCollection.insertOne(nuevaCategoria);
+
+    res.status(201).json({ message: 'Categoría agregada exitosamente', categoria: nuevaCategoria });
+  } catch (error) {
+    console.error('Error al agregar categoría:', error);
+    res.status(500).json({ message: 'Error al agregar categoría' });
+  } finally {
+    await client.close();
+  }
+});
+
+// Ruta para obtener todas las categorías
+router.get('/categorias', authenticateToken, async (req, res) => {
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const categoriasCollection = db.collection('categorias');
+
+    const categorias = await categoriasCollection.find().toArray();
+    res.status(200).json(categorias);
+  } catch (error) {
+    console.error('Error al obtener categorías:', error);
+    res.status(500).json({ message: 'Error al obtener categorías' });
+  } finally {
+    await client.close();
+  }
+});
+
+// Ruta para actualizar una categoría
+router.put('/categorias/:id', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { id } = req.params;
+  const { nombre } = req.body;
+
+  if (!nombre) {
+    return res.status(400).json({ message: 'El nombre de la categoría es obligatorio' });
+  }
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const categoriasCollection = db.collection('categorias');
+
+    const result = await categoriasCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { nombre } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Categoría no encontrada o sin cambios' });
+    }
+
+    res.status(200).json({ message: 'Categoría actualizada exitosamente' });
+  } catch (error) {
+    console.error('Error al actualizar categoría:', error);
+    res.status(500).json({ message: 'Error al actualizar categoría' });
+  } finally {
+    await client.close();
+  }
+});
+
+// Ruta para eliminar una categoría
+router.delete('/categorias/:id', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const categoriasCollection = db.collection('categorias');
+
+    const result = await categoriasCollection.deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Categoría no encontrada' });
+    }
+
+    res.status(200).json({ message: 'Categoría eliminada exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar categoría:', error);
+    res.status(500).json({ message: 'Error al eliminar categoría' });
+  } finally {
+    await client.close();
+  }
+});
+
+//===============================================
+// CRUD Ingredientes
+//===============================================
+
+// Ruta para agregar un nuevo ingrediente (asociado a una categoría)
+router.post('/ingredientes', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
+  const { nombre, categoria } = req.body;
+  const imagen = req.file ? req.file.path : null;
+
+  if (!nombre || !categoria) {
+    return res.status(400).json({ message: 'El nombre y la categoría son obligatorios' });
+  }
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const ingredientesCollection = db.collection('ingredientes');
+
+    // Verificar si el ingrediente ya existe
+    const ingredienteExistente = await ingredientesCollection.findOne({ nombre });
+    if (ingredienteExistente) {
+      return res.status(400).json({ message: 'El ingrediente ya existe' });
+    }
+
+    // Verificar si la categoría existe
+    const categoriasCollection = db.collection('categorias');
+    const categoriaExistente = await categoriasCollection.findOne({ nombre: categoria });
+    if (!categoriaExistente) {
+      return res.status(400).json({ message: 'La categoría no existe' });
+    }
+
+    // Crear nuevo ingrediente
+    const nuevoIngrediente = {
+      nombre,
+      categoria,
+      imagen,
+      fechaCreacion: new Date(),
+    };
+
+    await ingredientesCollection.insertOne(nuevoIngrediente);
+
+    res.status(201).json({ message: 'Ingrediente agregado exitosamente', ingrediente: nuevoIngrediente });
+  } catch (error) {
+    console.error('Error al agregar ingrediente:', error);
+    res.status(500).json({ message: 'Error al agregar ingrediente' });
+  } finally {
+    await client.close();
+  }
+});
+
+// Obtener todos los ingredientes
+router.get('/ingredientes', authenticateToken, async (req, res) => {
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const ingredientesCollection = db.collection('ingredientes');
+
+    const ingredientes = await ingredientesCollection.find({}).toArray();
+    res.status(200).json(ingredientes);
+  } catch (error) {
+    console.error('Error al obtener ingredientes:', error.message);
+    res.status(500).json({ message: 'Error al obtener los ingredientes' });
+  } finally {
+    await client.close();
+  }
+});
+
+// Obtener un ingrediente por ID
+router.get('/ingredientes/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const ingredientesCollection = db.collection('ingredientes');
+
+    const ingrediente = await ingredientesCollection.findOne({ _id: new ObjectId(id) });
+    if (!ingrediente) {
+      return res.status(404).json({ message: 'Ingrediente no encontrado' });
+    }
+
+    res.status(200).json(ingrediente);
+  } catch (error) {
+    console.error('Error al obtener ingrediente:', error.message);
+    res.status(500).json({ message: 'Error al obtener el ingrediente' });
+  } finally {
+    await client.close();
+  }
+});
+
+// Actualizar un ingrediente por ID
+router.put('/ingredientes/:id', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { id } = req.params;
+  const { nombre, categoria, imagen } = req.body;
+
+  if (!nombre || !categoria) {
+    return res.status(400).json({ message: 'Nombre y categoría son obligatorios' });
+  }
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const ingredientesCollection = db.collection('ingredientes');
+
+    const resultado = await ingredientesCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { nombre, categoria, imagen: imagen || null } }
+    );
+
+    if (resultado.matchedCount === 0) {
+      return res.status(404).json({ message: 'Ingrediente no encontrado' });
+    }
+
+    res.status(200).json({ message: 'Ingrediente actualizado con éxito' });
+  } catch (error) {
+    console.error('Error al actualizar ingrediente:', error.message);
+    res.status(500).json({ message: 'Error al actualizar el ingrediente' });
+  } finally {
+    await client.close();
+  }
+});
+
+// Eliminar un ingrediente por ID
+router.delete('/ingredientes/:id', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const ingredientesCollection = db.collection('ingredientes');
+
+    const resultado = await ingredientesCollection.deleteOne({ _id: new ObjectId(id) });
+    if (resultado.deletedCount === 0) {
+      return res.status(404).json({ message: 'Ingrediente no encontrado' });
+    }
+
+    res.status(200).json({ message: 'Ingrediente eliminado con éxito' });
+  } catch (error) {
+    console.error('Error al eliminar ingrediente:', error.message);
+    res.status(500).json({ message: 'Error al eliminar el ingrediente' });
+  } finally {
+    await client.close();
+  }
+});
+
+// ======================= CRUD DE RECETAS =======================
+
+// Crear una receta
+router.post('/recetas', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
+  const { titulo, duracion, ingredientes, porciones, paso, valoracion } = req.body;
+  const imagen = req.file ? req.file.path : null;
+
+  if (!titulo || !duracion || !ingredientes || !paso) {
+    return res.status(400).json({ message: 'Todos los campos obligatorios deben ser completados' });
+  }
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const ingredientesCollection = db.collection('ingredientes');
+    const recetasCollection = db.collection('recetas');
+
+    // Verificar que todos los ingredientes existen en la base de datos por nombre
+    const ingredientesArray = JSON.parse(ingredientes); // Convertir el JSON de ingredientes en un array
+    const ingredientesValidos = await ingredientesCollection.find({ nombre: { $in: ingredientesArray.map(i => i.nombre) } }).toArray();
+
+    if (ingredientesValidos.length !== ingredientesArray.length) {
+      return res.status(400).json({ message: 'Uno o más ingredientes no existen en la base de datos' });
+    }
+
+    const nuevaReceta = {
+      titulo,
+      duracion: Number(duracion),
+      valoracion: valoracion ? Number(valoracion) : 0,  // Valoración predeterminada en 0 si no se especifica
+      porciones: porciones ? Number(porciones) : 0,  // Porciones predeterminadas en 0 si no se especifica
+      ingredientes: ingredientesArray,
+      imagen,
+      paso: paso,
+      fechaCreacion: new Date(),
+    };
+
+    await recetasCollection.insertOne(nuevaReceta);
+    res.status(201).json({ message: 'Receta creada exitosamente', receta: nuevaReceta });
+  } catch (error) {
+    console.error('Error al crear receta:', error);
+    res.status(500).json({ message: 'Error al crear receta', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+// Obtener todas las recetas
+router.get('/recetas', authenticateToken, async (req, res) => {
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const recetasCollection = db.collection('recetas');
+    
+    const recetas = await recetasCollection.find({}).toArray();
+    res.status(200).json(recetas);
+  } catch (error) {
+    console.error('Error al obtener recetas:', error);
+    res.status(500).json({ message: 'Error al obtener recetas', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+// Obtener una receta por su ID
+router.get('/recetas/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const recetasCollection = db.collection('recetas');
+    
+    const receta = await recetasCollection.findOne({ _id: new ObjectId(id) });
+    if (!receta) {
+      return res.status(404).json({ message: 'Receta no encontrada' });
+    }
+
+    res.status(200).json(receta);
+  } catch (error) {
+    console.error('Error al obtener receta:', error);
+    res.status(500).json({ message: 'Error al obtener receta', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+// Actualizar una receta
+router.put('/recetas/:id', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
+  const { id } = req.params;
+  const { titulo, duracion, ingredientes, porciones, paso, valoracion } = req.body;
+  const imagen = req.file ? req.file.path : null;
+
+  if (!titulo || !duracion || !ingredientes || !paso) {
+    return res.status(400).json({ message: 'Todos los campos obligatorios deben ser completados' });
+  }
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const recetasCollection = db.collection('recetas');
+    const ingredientesCollection = db.collection('ingredientes');
+
+    // Verificar que los ingredientes existen en la base de datos
+    const ingredientesArray = JSON.parse(ingredientes);
+    const ingredientesValidos = await ingredientesCollection.find({ nombre: { $in: ingredientesArray.map(i => i.nombre) } }).toArray();
+
+    if (ingredientesValidos.length !== ingredientesArray.length) {
+      return res.status(400).json({ message: 'Uno o más ingredientes no existen en la base de datos' });
+    }
+
+    const recetaActualizada = {
+      titulo,
+      duracion: Number(duracion),
+      valoracion: valoracion ? Number(valoracion) : 0,
+      porciones: porciones ? Number(porciones) : 0,
+      ingredientes: ingredientesArray,
+      imagen: imagen || req.body.imagenAnterior,  // Mantener la imagen anterior si no se envía una nueva
+      paso: paso,
+    };
+
+    const result = await recetasCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: recetaActualizada }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Receta no encontrada o sin cambios' });
+    }
+
+    res.status(200).json({ message: 'Receta actualizada con éxito', receta: recetaActualizada });
+  } catch (error) {
+    console.error('Error al actualizar receta:', error);
+    res.status(500).json({ message: 'Error al actualizar receta', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+// Eliminar una receta
+router.delete('/recetas/:id', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const recetasCollection = db.collection('recetas');
+
+    const result = await recetasCollection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Receta no encontrada' });
+    }
+
+    res.status(200).json({ message: 'Receta eliminada con éxito' });
+  } catch (error) {
+    console.error('Error al eliminar receta:', error);
+    res.status(500).json({ message: 'Error al eliminar receta', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+module.exports = router; //NO BORRAR
