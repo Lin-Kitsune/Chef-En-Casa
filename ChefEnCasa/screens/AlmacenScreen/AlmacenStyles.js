@@ -167,12 +167,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   pageButton: {
     backgroundColor: '#ccc',
-    padding: 10,
-    marginHorizontal: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginHorizontal: 3,
     borderRadius: 5,
   },
   activePageButton: {
