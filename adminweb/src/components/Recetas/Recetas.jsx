@@ -1,45 +1,79 @@
-import React, { useState } from 'react';
-import receta1 from '../../images/receta1.jpg';
-import receta2 from '../../images/receta2.jpg';
-import receta3 from '../../images/receta3.jpg';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faStar, faUtensils, faClock, faPlus, faFilter, faTimes, faEdit } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faStar, faClock, faPlus, faFilter, faTimes, faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { getAllRecetas, createReceta, updateReceta, deleteReceta } from '../../services/recetaService';
 import './Recetas.css';
 
+// faUtensils
+
 const Recetas = () => {
-  const [filterModalVisible, setFilterModalVisible] = useState(false); // Modal de filtro
-  const [addRecipeModalVisible, setAddRecipeModalVisible] = useState(false); // Modal de agregar receta
-  const [classification, setClassification] = useState(''); // Filtro de clasificación
-  const [minRating, setMinRating] = useState(0); // Valoración mínima
-  const [searchQuery, setSearchQuery] = useState(''); // Valor de búsqueda
-  const [durationFilter, setDurationFilter] = useState(''); // Duración seleccionada
-  const [sortBy, setSortBy] = useState(''); // Ordenar por valoración
-  const [editRecipeModalVisible, setEditRecipeModalVisible] = useState(false); // Para controlar la visibilidad del modal de edición
-  const [selectedRecipe, setSelectedRecipe] = useState(null); // Almacenar la receta seleccionada para editar
-  const [newRecipe, setNewRecipe] = useState({
-    title: '',
-    rating: 0,
-    servings: '',
-    duration: '',
-    image: null,
-    ingredients: [],
-    steps: ''
+  const [recetas, setRecetas] = useState([]);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [addRecipeModalVisible, setAddRecipeModalVisible] = useState(false);
+  const [classification, setClassification] = useState('');
+  const [minRating, setMinRating] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [durationFilter, setDurationFilter] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [editRecipeModalVisible, setEditRecipeModalVisible] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState({
+    titulo: '',
+    duracion: '',
+    ingredientes: [],
+    porciones: '',
+    imagen: null,
+    paso: '',
+    valoracion: 0
   });
   
-  const [ingredientSearch, setIngredientSearch] = useState(''); // Búsqueda de ingredientes
-  const [selectedIngredient, setSelectedIngredient] = useState({ name: '', quantity: '' }); // Ingrediente seleccionado
+  // Estado para nueva receta
+  const [newRecipe, setNewRecipe] = useState({
+    titulo: '',         // Nombre de la receta
+    duracion: '',       // Duración en minutos
+    ingredientes: [],   // Lista de ingredientes
+    porciones: '',      // Número de porciones
+    imagen: null,       // Imagen del plato
+    paso: '',           // Pasos de la receta
+    valoracion: 0       // Valoración inicial
+  });
   
-  const availableIngredients = ['Mango', 'Plátano', 'Yogur', 'Cúrcuma', 'Pimienta negra', 'Fresas']; // Ejemplo de ingredientes disponibles
 
-  const recetas = [
-    { id: 1, name: 'Bol con Fruta', rating: 4.5, servings: 2, time: '5 minutos', image: receta1, category: 'Desayuno', duration: 5 },
-    { id: 2, name: 'Pizza Margarita', rating: 4.7, servings: 4, time: '20 minutos', image: receta2, category: 'Almuerzo', duration: 20 },
-    { id: 3, name: 'Sopa de Verduras', rating: 4.2, servings: 3, time: '30 minutos', image: receta3, category: 'Cena', duration: 30 },
-  ];
+  const [ingredientSearch, setIngredientSearch] = useState('');
+  const [selectedIngredient, setSelectedIngredient] = useState({ name: '', quantity: '' });
+  const availableIngredients = ['Mango', 'Plátano', 'Yogur', 'Cúrcuma', 'Pimienta negra', 'Fresas'];
 
-  // Función para abrir y cerrar el modal
+  // Función para abrir y cerrar el modal de filtro
   const toggleFilterModal = () => {
     setFilterModalVisible(!filterModalVisible);
+  };
+
+  // Cargar recetas desde el backend
+  useEffect(() => {
+    const fetchRecetas = async () => {
+      try {
+        const recetasData = await getAllRecetas();
+        setRecetas(recetasData);
+      } catch (error) {
+        console.error('Error al cargar recetas:', error);
+      }
+    };
+    fetchRecetas();
+  }, []);
+
+  // Función para manejar cambios en los campos de la receta nueva
+  const handleRecipeChange = (field, value) => {
+    setNewRecipe({ ...newRecipe, [field]: value });
+  };
+
+  // Función para agregar un nuevo ingrediente
+  const addIngredient = () => {
+    if (selectedIngredient.name && selectedIngredient.quantity) {
+      setNewRecipe({
+        ...newRecipe,
+        ingredients: [...newRecipe.ingredients, selectedIngredient]
+      });
+      setSelectedIngredient({ name: '', quantity: '' });
+    }
   };
 
   // Función para eliminar un ingrediente de la lista
@@ -48,69 +82,107 @@ const Recetas = () => {
     setNewRecipe({ ...newRecipe, ingredients: updatedIngredients });
   };
 
-   // Función para abrir y cerrar el modal de agregar receta
-   const toggleAddRecipeModal = () => {
-    setAddRecipeModalVisible(!addRecipeModalVisible);
-  };
-
-  // Función para manejar cambios en los campos de la receta
-  const handleRecipeChange = (field, value) => {
-    setNewRecipe({ ...newRecipe, [field]: value });
-  };
-
-   // Función para agregar ingredientes
-   const addIngredient = () => {
-    if (selectedIngredient.name && selectedIngredient.quantity) {
-      setNewRecipe({
-        ...newRecipe,
-        ingredients: [...newRecipe.ingredients, selectedIngredient]
-      });
-      setSelectedIngredient({ name: '', quantity: '' }); // Resetear después de agregar
-    }
-  };
-
-  // Función para limpiar los filtros
+  // Función para limpiar filtros
   const clearFilters = () => {
     setClassification('');
     setDurationFilter('');
     setSortBy('');
     setMinRating(0);
     setSearchQuery('');
-    toggleFilterModal(); // Cerrar el modal al limpiar
+    toggleFilterModal();
   };
 
-  // Función para abrir el modal y cargar la receta seleccionada
+    // Función para abrir y cerrar el modal de agregar receta
+    const toggleAddRecipeModal = () => {
+      setAddRecipeModalVisible(!addRecipeModalVisible);
+    };
+
+  // Función para abrir el modal de edición
   const openEditModal = (recipe) => {
-    setSelectedRecipe(recipe); // Cargamos los datos de la receta seleccionada
-    setEditRecipeModalVisible(true); // Mostramos el modal
+    setSelectedRecipe(recipe);
+    setEditRecipeModalVisible(true);
   };
 
-  // Función para cerrar el modal
+  // Función para cerrar el modal de edición
   const closeEditModal = () => {
     setEditRecipeModalVisible(false);
   };
 
-  // Función para filtrar las recetas según búsqueda, clasificación, valoración, duración y orden
+  // Filtrar recetas en base a búsqueda y filtros
   const filteredRecetas = recetas
     .filter((receta) => {
-      const matchesSearch = receta.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = classification ? receta.category === classification : true;
-      const matchesRating = receta.rating >= minRating;
-      const matchesDuration = durationFilter ? 
-        (durationFilter === 'short' && receta.duration < 10) ||
-        (durationFilter === 'medium' && receta.duration >= 10 && receta.duration <= 30) ||
-        (durationFilter === 'long' && receta.duration > 30) 
+      const matchesSearch = receta.titulo.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = classification ? receta.categoria === classification : true;
+      const matchesRating = receta.valoracion >= minRating;
+      const matchesDuration = durationFilter
+        ? (durationFilter === 'short' && receta.duracion < 10) ||
+          (durationFilter === 'medium' && receta.duracion >= 10 && receta.duracion <= 30) ||
+          (durationFilter === 'long' && receta.duracion > 30)
         : true;
       return matchesSearch && matchesCategory && matchesRating && matchesDuration;
     })
     .sort((a, b) => {
-      if (sortBy === 'ratingAsc') return a.rating - b.rating;
-      if (sortBy === 'ratingDesc') return b.rating - a.rating;
+      if (sortBy === 'ratingAsc') return a.valoracion - b.valoracion;
+      if (sortBy === 'ratingDesc') return b.valoracion - a.valoracion;
       return 0;
     });
 
-  // Filtrar ingredientes disponibles en base a la búsqueda
-  const filteredIngredients = availableIngredients.filter(ingredient =>
+  // Función para agregar una receta nueva
+  const handleAddRecipe = async () => {
+    try {
+      const formData = new FormData();
+      Object.keys(newRecipe).forEach((key) => {
+        if (key === 'ingredients') {
+          formData.append(key, JSON.stringify(newRecipe[key]));
+        } else if (key === 'image' && newRecipe.image) {
+          formData.append(key, newRecipe.image);
+        } else {
+          formData.append(key, newRecipe[key]);
+        }
+      });
+      const addedRecipe = await createReceta(formData);
+      setRecetas([...recetas, addedRecipe]);
+      setAddRecipeModalVisible(false);
+    } catch (error) {
+      console.error('Error al agregar receta:', error);
+    }
+  };
+
+  // Función para actualizar una receta
+const handleUpdateRecipe = async (updatedRecipe) => {
+  try {
+    const formData = new FormData();
+    Object.keys(updatedRecipe).forEach((key) => {
+      if (key === 'ingredientes') {
+        formData.append(key, JSON.stringify(updatedRecipe[key])); // Convertimos ingredientes a JSON
+      } else if (key === 'imagen' && updatedRecipe.imagen instanceof File) {
+        formData.append(key, updatedRecipe.imagen); // Solo incluimos imagen si es un nuevo archivo
+      } else {
+        formData.append(key, updatedRecipe[key]);
+      }
+    });
+
+    const updated = await updateReceta(updatedRecipe._id, formData); // Enviar `formData` al backend
+    setRecetas(recetas.map((receta) => (receta._id === updated._id ? updated : receta)));
+    closeEditModal();
+  } catch (error) {
+    console.error('Error al actualizar receta:', error);
+  }
+};
+
+
+  // Función para eliminar una receta
+  const handleDeleteRecipe = async (id) => {
+    try {
+      await deleteReceta(id);
+      setRecetas(recetas.filter((receta) => receta._id !== id));
+    } catch (error) {
+      console.error('Error al eliminar receta:', error);
+    }
+  };
+
+  // Filtrar ingredientes disponibles según la búsqueda
+  const filteredIngredients = availableIngredients.filter((ingredient) =>
     ingredient.toLowerCase().includes(ingredientSearch.toLowerCase())
   );
 
@@ -150,20 +222,22 @@ const Recetas = () => {
       {/* Grid de recetas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRecetas.map((receta) => (
-          <div key={receta.id} className="bg-white rounded-lg shadow-md p-4">
-            <img src={receta.image} alt={receta.name} className="rounded-lg mb-4 w-full h-40 object-cover" />
-            <div className="receta-info">
-              <h3 className="text-lg font-semibold mb-2">{receta.name}</h3>
-              <p className="text-gray-600 flex items-center">
-                <FontAwesomeIcon icon={faStar} className="text-yellow-500 mr-2" /> {receta.rating} &nbsp;
-                <FontAwesomeIcon icon={faUtensils} className="mr-2" style={{ color: '#619537' }} /> {receta.servings} &nbsp;
-                <FontAwesomeIcon icon={faClock} className="mr-2" style={{ color: '#619537' }} /> {receta.time}
-              </p>
-              <button 
-                className="mt-4 bg-verde-chef text-white py-2 px-4 rounded-full font-bold hover:bg-green-600 transition duration-300"
-                onClick={() => openEditModal(receta)} // Abrir modal con los datos
-              >
+          <div key={receta._id} className="bg-white rounded-lg shadow-md p-4">
+            <img src={`http://localhost:4000/${receta.imagen}`} alt={receta.titulo} className="rounded-lg mb-4 w-full h-40 object-cover" />
+            <h3 className="text-lg font-semibold mb-2">{receta.titulo}</h3>
+            <p className="text-gray-600">
+              <FontAwesomeIcon icon={faStar} className="text-yellow-500 mr-2" /> {receta.valoracion}
+              <FontAwesomeIcon icon={faClock} className="mr-2 ml-4" style={{ color: '#619537' }} /> {receta.duracion} min
+            </p>
+            <div className="mt-4 flex space-x-4">
+              <button className="mt-4 bg-verde-chef text-white py-2 px-4 rounded-full font-bold hover:bg-green-600 transition duration-300" onClick={() => openEditModal(receta)}>
                 <FontAwesomeIcon icon={faEdit}/> Editar
+              </button>
+              <button
+                    onClick={() => handleDeleteRecipe(receta._id)}
+                    className="mt-4 bg-red-500 text-white py-2 px-4 rounded-full font-bold hover:bg-red-600 transition duration-300"
+                  >
+                    <FontAwesomeIcon icon={faTrash} /> Eliminar
               </button>
             </div>
           </div>
@@ -172,7 +246,7 @@ const Recetas = () => {
       {/* Modal de agregar receta */}
       {addRecipeModalVisible && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-6xl"> {/* Aumentamos el ancho aquí */}
+          <div className="bg-white rounded-lg p-6 w-full max-w-6xl">
             <h2 className="text-lg font-bold mb-4">Agregar Receta</h2>
             <div className="grid grid-cols-4 gap-4"> 
               
@@ -183,8 +257,32 @@ const Recetas = () => {
                   type="text" 
                   className="w-full border border-gray-300 rounded-lg p-2" 
                   placeholder="Nombre de la receta"
-                  value={newRecipe.title}
-                  onChange={(e) => handleRecipeChange('title', e.target.value)}
+                  value={newRecipe.titulo}
+                  onChange={(e) => handleRecipeChange('titulo', e.target.value)}
+                />
+              </div>
+
+              {/* Duración */}
+              <div>
+                <label className="block mb-2 font-semibold">Duración (minutos)</label>
+                <input 
+                  type="number" 
+                  className="w-full border border-gray-300 rounded-lg p-2" 
+                  placeholder="Ej: 15"
+                  value={newRecipe.duracion}
+                  onChange={(e) => handleRecipeChange('duracion', e.target.value)}
+                />
+              </div>
+
+              {/* Porciones */}
+              <div>
+                <label className="block mb-2 font-semibold">Porciones</label>
+                <input 
+                  type="number" 
+                  className="w-full border border-gray-300 rounded-lg p-2" 
+                  placeholder="Número de porciones"
+                  value={newRecipe.porciones}
+                  onChange={(e) => handleRecipeChange('porciones', e.target.value)}
                 />
               </div>
 
@@ -197,32 +295,8 @@ const Recetas = () => {
                   placeholder="0"
                   min="0"
                   max="5"
-                  value={newRecipe.rating}
-                  onChange={(e) => handleRecipeChange('rating', e.target.value)}
-                />
-              </div>
-
-              {/* Porciones */}
-              <div>
-                <label className="block mb-2 font-semibold">Porciones</label>
-                <input 
-                  type="number" 
-                  className="w-full border border-gray-300 rounded-lg p-2" 
-                  placeholder="Número de porciones"
-                  value={newRecipe.servings}
-                  onChange={(e) => handleRecipeChange('servings', e.target.value)}
-                />
-              </div>
-
-              {/* Duración */}
-              <div className="col-span-2">
-                <label className="block mb-2 font-semibold">Duración</label>
-                <input 
-                  type="text" 
-                  className="w-full border border-gray-300 rounded-lg p-2" 
-                  placeholder="Tiempo en minutos"
-                  value={newRecipe.duration}
-                  onChange={(e) => handleRecipeChange('duration', e.target.value)}
+                  value={newRecipe.valoracion}
+                  onChange={(e) => handleRecipeChange('valoracion', e.target.value)}
                 />
               </div>
 
@@ -232,7 +306,7 @@ const Recetas = () => {
                 <input 
                   type="file" 
                   className="w-full cursor-pointer rounded-lg border-[1.5px] border-gray-300 bg-transparent p-2 font-normal outline-none transition file:mr-5 file:cursor-pointer file:border-0 file:border-r file:border-solid file:border-gray-300 file:bg-white file:px-2 file:py-2 file:text-gray-700 file:hover:bg-green-600 file:hover:text-white focus:border-green-500"
-                  onChange={(e) => handleRecipeChange('image', e.target.files[0])}
+                  onChange={(e) => handleRecipeChange('imagen', e.target.files[0])}
                 />
               </div>
 
@@ -261,7 +335,6 @@ const Recetas = () => {
                     Agregar
                   </button>
                 </div>
-                {/* Mostrar ingredientes filtrados */}
                 <ul className="border p-2 rounded-lg max-h-40 overflow-y-scroll">
                   {filteredIngredients.map((ingredient, index) => (
                     <li 
@@ -273,17 +346,16 @@ const Recetas = () => {
                     </li>
                   ))}
                 </ul>
-                {/* Lista de ingredientes agregados */}
                 <ul>
-                  {newRecipe.ingredients.map((ingredient, index) => (
+                  {newRecipe.ingredientes.map((ingredient, index) => (
                     <li key={index} className="flex justify-between border-b py-2">
                       <span>{ingredient.name}</span>
                       <span>{ingredient.quantity}</span>
                       <button 
-                        onClick={() => removeIngredient(index)} // Función para eliminar
+                        onClick={() => removeIngredient(index)}
                         className="text-red-500 ml-2"
                       >
-                        <FontAwesomeIcon icon={faTimes} /> {/* Ícono de "X" */}
+                        <FontAwesomeIcon icon={faTimes} />
                       </button>
                     </li>
                   ))}
@@ -296,8 +368,8 @@ const Recetas = () => {
                 <textarea 
                   className="w-full border border-gray-300 rounded-lg p-2"
                   placeholder="Describir los pasos de la receta"
-                  value={newRecipe.steps}
-                  onChange={(e) => handleRecipeChange('steps', e.target.value)}
+                  value={newRecipe.paso}
+                  onChange={(e) => handleRecipeChange('paso', e.target.value)}
                 />
               </div>
             </div>
@@ -312,11 +384,7 @@ const Recetas = () => {
               </button>
               <button 
                 className="bg-verde-chef text-white py-2 px-4 rounded-full"
-                onClick={() => {
-                  // Aquí podrías manejar la lógica para guardar la receta
-                  console.log(newRecipe);
-                  toggleAddRecipeModal();
-                }}
+                onClick={handleAddRecipe}
               >
                 Guardar Receta
               </button>
@@ -325,30 +393,31 @@ const Recetas = () => {
         </div>
       )}
       {/* Modal de editar receta */}
-      {editRecipeModalVisible && selectedRecipe.ingredients && selectedRecipe.ingredients.length > 0 && (
+      {editRecipeModalVisible && selectedRecipe.ingredientes && selectedRecipe.ingredientes.length > 0 && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-3xl">
             <h2 className="text-lg font-bold mb-4">Editar Receta</h2>
             <div className="space-y-4">
+              
               {/* Título de la receta */}
               <div>
                 <label className="block mb-2 font-semibold">Título</label>
                 <input 
                   type="text" 
                   className="w-full border border-gray-300 rounded-lg p-2" 
-                  value={selectedRecipe.title}
-                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, title: e.target.value })}
+                  value={selectedRecipe.titulo}
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, titulo: e.target.value })}
                 />
               </div>
 
               {/* Valoración */}
               <div>
-                <label className="block mb-2 font-semibold">Valoración inicial</label>
+                <label className="block mb-2 font-semibold">Valoración</label>
                 <input 
                   type="number" 
                   className="w-full border border-gray-300 rounded-lg p-2" 
-                  value={selectedRecipe.rating}
-                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, rating: e.target.value })}
+                  value={selectedRecipe.valoracion}
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, valoracion: e.target.value })}
                 />
               </div>
 
@@ -358,19 +427,19 @@ const Recetas = () => {
                 <input 
                   type="number" 
                   className="w-full border border-gray-300 rounded-lg p-2" 
-                  value={selectedRecipe.servings}
-                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, servings: e.target.value })}
+                  value={selectedRecipe.porciones}
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, porciones: e.target.value })}
                 />
               </div>
 
               {/* Duración */}
               <div>
-                <label className="block mb-2 font-semibold">Duración</label>
+                <label className="block mb-2 font-semibold">Duración (minutos)</label>
                 <input 
-                  type="text" 
+                  type="number" 
                   className="w-full border border-gray-300 rounded-lg p-2" 
-                  value={selectedRecipe.duration}
-                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, duration: e.target.value })}
+                  value={selectedRecipe.duracion}
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, duracion: e.target.value })}
                 />
               </div>
 
@@ -379,22 +448,21 @@ const Recetas = () => {
                 <label className="block mb-2 font-semibold">Imagen</label>
                 <input 
                   type="file" 
-                  className="w-full border border-gray-300 rounded-lg p-2"
-                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, image: e.target.files[0] })}
+                  className="w-full cursor-pointer rounded-lg border-[1.5px] border-gray-300 bg-transparent p-2 font-normal outline-none transition file:mr-5 file:cursor-pointer file:border-0 file:border-r file:border-solid file:border-gray-300 file:bg-white file:px-2 file:py-2 file:text-gray-700 file:hover:bg-green-600 file:hover:text-white focus:border-green-500"
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, imagen: e.target.files[0] })}
                 />
               </div>
 
               {/* Ingredientes */}
               <div>
                 <label className="block mb-2 font-semibold">Ingredientes</label>
-                {/* Aquí cargamos los ingredientes para editarlos */}
                 <ul>
-                  {selectedRecipe.ingredients.map((ingredient, index) => (
+                  {selectedRecipe.ingredientes.map((ingredient, index) => (
                     <li key={index} className="flex justify-between border-b py-2">
-                      <span>{ingredient.name}</span>
-                      <span>{ingredient.quantity}</span>
+                      <span>{ingredient.nombre}</span>
+                      <span>{ingredient.cantidad}</span>
                       <button 
-                        onClick={() => removeIngredient(index)} // Usamos la misma función de eliminar ingrediente
+                        onClick={() => removeIngredient(index)}
                         className="text-red-500 ml-2"
                       >
                         <FontAwesomeIcon icon={faTimes} />
@@ -409,8 +477,8 @@ const Recetas = () => {
                 <label className="block mb-2 font-semibold">Paso a paso</label>
                 <textarea 
                   className="w-full border border-gray-300 rounded-lg p-2"
-                  value={selectedRecipe.steps}
-                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, steps: e.target.value })}
+                  value={selectedRecipe.paso}
+                  onChange={(e) => setSelectedRecipe({ ...selectedRecipe, paso: e.target.value })}
                 />
               </div>
             </div>
@@ -425,11 +493,7 @@ const Recetas = () => {
               </button>
               <button 
                 className="bg-verde-chef text-white py-2 px-4 rounded-full"
-                onClick={() => {
-                  // Aquí puedes manejar la lógica de guardar los cambios de la receta
-                  console.log(selectedRecipe);
-                  closeEditModal();
-                }}
+                onClick={() => handleUpdateRecipe(selectedRecipe)}
               >
                 Guardar Cambios
               </button>
