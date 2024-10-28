@@ -68,6 +68,7 @@ async function crearOActualizarAlmacen(db, usuarioId, ingredientes) {
         ingredientes: ingredientes.map(ing => ({
           nombre: ing.nombre.toLowerCase(),
           cantidad: convertirMedida(ing.cantidad, ing.unidad), // Convertir a gramos o mililitros
+          img: ing.img || '', // Incluir la imagen si está disponible
           fechaIngreso: new Date(),
           perecedero: ing.perecedero || false
         }))
@@ -80,11 +81,14 @@ async function crearOActualizarAlmacen(db, usuarioId, ingredientes) {
         if (almacenIngrediente) {
           // Si el ingrediente ya existe, sumamos la cantidad (convertida)
           almacenIngrediente.cantidad += convertirMedida(ing.cantidad, ing.unidad);
+          // Actualizar la imagen si se proporciona una nueva
+          almacenIngrediente.img = ing.img || almacenIngrediente.img;
         } else {
           // Si es un nuevo ingrediente, lo añadimos
           almacen.ingredientes.push({
             nombre: ing.nombre.toLowerCase(),
             cantidad: convertirMedida(ing.cantidad, ing.unidad),
+            img: ing.img || '', // Incluir la imagen si está disponible
             fechaIngreso: new Date(),
             perecedero: ing.perecedero || false
           });
