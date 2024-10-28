@@ -20,24 +20,6 @@ const { crearOActualizarAlmacen } = require('./models/Almacen'); // Importar las
 const { getNoticias } = require('./models/newsService');
 require('dotenv').config();
 
-
-// Cargar el archivo JSON de ingredientes
-let ingredientesMap = {};
-
-// Leer el archivo JSON de manera síncrona al iniciar el servidor
-fs.readFile('./ingredientes.json', 'utf8', (err, data) => {
-  if (err) {
-    console.error('Error al leer el archivo de ingredientes:', err);
-    return;
-  }
-  ingredientesMap = JSON.parse(data); // Parsear el contenido del archivo JSON
-  console.log('Archivo de ingredientes cargado correctamente');
-});
-
-const convertirIngredienteAEspanol = (ingrediente) => {
-  return ingredientesMap[ingrediente.toLowerCase()] || ingrediente;
-};
-
 // Cargar las variables de entorno desde el archivo .env
 dotenv.config();
 
@@ -153,6 +135,48 @@ async function startServer() {
 }
 
 startServer().catch(console.error);
+
+//CARGA DE INGREDIENTES DE LA DB 
+
+let ingredientesMap = {};
+
+async function cargarIngredientesDesdeDB() {
+  try {
+    const db = await connectToDatabase();
+    const ingredientes = await db.collection('ingredientes').find({}).toArray();
+    ingredientes.forEach(ingrediente => {
+      ingredientesMap[ingrediente.nombreOriginal.toLowerCase()] = ingrediente.nombreEspanol;
+    });
+    console.log('Ingredientes cargados correctamente desde la base de datos');
+  } catch (error) {
+    console.error('Error al cargar los ingredientes desde la base de datos:', error);
+  }
+}
+
+// Llama a la función cuando inicie el servidor
+cargarIngredientesDesdeDB();
+
+async function convertirIngredienteAEspanol(ingrediente) {
+  try {
+    const db = await connectToDatabase();
+    const resultado = await db.collection('ingredientes').findOne({ nombreOriginal: ingrediente.toLowerCase() });
+    return resultado ? resultado.nombreEspanol : ingrediente;
+  } catch (error) {
+    console.error('Error al convertir ingrediente al español:', error);
+    return ingrediente;
+  }
+}
+
+async function traducirIngredienteAIngles(ingrediente) {
+  try {
+    const db = await connectToDatabase();
+    const resultado = await db.collection('ingredientes').findOne({ nombreEspanol: ingrediente.toLowerCase() });
+    return resultado ? resultado.nombreOriginal : ingrediente;
+  } catch (error) {
+    console.error('Error al traducir ingrediente a inglés:', error);
+    return ingrediente;
+  }
+}
 
 // Middleware para el manejo centralizado de errores
 app.use((err, req, res, next) => {
@@ -472,37 +496,78 @@ app.post('/reclamos', authenticateToken, async (req, res) => {
 //===================================================INGREDIENTES=============================================
 
 
-// Ruta para obtener todos los ingredientes  
-// Modificado para traducirlos al español
-app.get('/ingredientes', async (req, res) => {
+// Ruta para obtener ingredientes desde la base de datos
+app.get('/ingredientes', authenticateToken, async (req, res) => {
   try {
-    // Configura la solicitud a Spoonacular
-    const response = await axios.get('https://api.spoonacular.com/food/ingredients/search', {
-      params: {
-        apiKey: SPOONACULAR_API_KEY,
-        query: req.query.q || 'tomato',  // Puedes cambiar el ingrediente por defecto o pasar uno como query
-        number: 100 // Número de ingredientes que deseas obtener
-      }
-    });
+    const db = await connectToDatabase();
+    const ingredientes = await db.collection('ingredientes').find().toArray();
 
-    // Obtener los ingredientes desde la respuesta
-    const ingredientes = response.data.results;
-
-    // Traducir el nombre de cada ingrediente al español
-    const ingredientesTraducidos = await Promise.all(ingredientes.map(async (ingrediente) => {
-      const nombreTraducido = await translateText(ingrediente.name, 'es'); // Traducir el nombre del ingrediente al español
-      return {
-        ...ingrediente,
-        name: nombreTraducido // Reemplazar el nombre por su traducción
-      };
-    }));
-
-    // Devuelve los datos 
-    // Devuelve los ingredientes traducidos
-    res.status(200).json({ results: ingredientesTraducidos });
+    res.status(200).json({ results: ingredientes }); // Asegúrate de enviar siempre un estado 200
   } catch (error) {
-    console.error('Error al obtener la lista de ingredientes:', error.message);
-    res.status(500).json({ error: 'Error al obtener la lista de ingredientes' });
+    console.error('Error al obtener ingredientes:', error.message);
+    res.status(500).json({ error: 'Error al obtener ingredientes' });
+  }
+});
+
+// Ruta para importar todos los ingredientes desde Spoonacular y guardarlos en la base de datos
+app.post('/importar-todos-los-ingredientes', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const letras = 'abcdefghijklmnopqrstuvwxyz'.split(''); // Array de letras para las consultas
+    const number = 100; // Número de ingredientes por solicitud (máximo permitido por Spoonacular)
+    let ingredientesImportados = 0;
+
+    // Iterar sobre cada letra del abecedario para hacer solicitudes
+    for (const letra of letras) {
+      let offset = 0; // Iniciar desde el primer ingrediente con cada letra
+      let totalResultados = 0;
+
+      do {
+        // Hacer la solicitud a Spoonacular para obtener los ingredientes paginados
+        const response = await axios.get('https://api.spoonacular.com/food/ingredients/search', {
+          params: {
+            apiKey: SPOONACULAR_API_KEY,
+            query: letra, // Usar la letra actual como parámetro de búsqueda
+            offset, // Desplazamiento de la búsqueda
+            number // Número de ingredientes por solicitud
+          }
+        });
+
+        // Obtener los ingredientes desde la respuesta
+        const ingredientes = response.data.results;
+        totalResultados = response.data.totalResults; // Número total de ingredientes en Spoonacular
+
+        // Guardar los ingredientes en la base de datos con su traducción
+        for (const ingrediente of ingredientes) {
+          // Traducir el nombre del ingrediente usando la función translateText
+          const nombreTraducido = await translateText(ingrediente.name.toLowerCase(), 'es');
+
+          // Guardar o actualizar el ingrediente en la base de datos
+          await db.collection('ingredientes').updateOne(
+            { nombreOriginal: ingrediente.name.toLowerCase() }, // Buscar por nombre original
+            {
+              $set: {
+                nombreOriginal: ingrediente.name.toLowerCase(),
+                nombreEspanol: nombreTraducido,
+                image: ingrediente.image,
+              }
+            },
+            { upsert: true } // Si no existe, crear un nuevo registro
+          );
+        }
+
+        // Incrementar el contador de ingredientes importados y el offset
+        ingredientesImportados += ingredientes.length;
+        offset += number;
+
+        console.log(`Importados ${ingredientesImportados} ingredientes usando la letra '${letra}'...`);
+      } while (offset < totalResultados); // Continuar hasta que se hayan importado todos los ingredientes con la letra actual
+    }
+
+    res.status(200).json({ message: 'Todos los ingredientes importados y almacenados en la base de datos' });
+  } catch (error) {
+    console.error('Error al importar todos los ingredientes:', error.response ? error.response.data : error.message);
+    res.status(500).json({ error: 'Error al importar todos los ingredientes' });
   }
 });
 
@@ -558,47 +623,74 @@ function convertirMedida(cantidad, unidad) {
 
 //============================================ALMACEN=============================================
 //================================================================================================
-
-// Traducción de ingredientes ingresados por el usuario en español a inglés
-const traducirIngredienteAIngles = (ingrediente) => {
-  // Buscar el nombre en el archivo ingredientes.json, si no está, se mantiene en español
-  for (const [espanol, ingles] of Object.entries(ingredientesMap)) {
-    if (espanol.toLowerCase() === ingrediente.toLowerCase()) {
-      return ingles;
-    }
-  }
-  return ingrediente;  // Si no hay traducción, devolver el mismo nombre
-};
-
 // Revisar almacén
 app.get('/almacen', authenticateToken, async (req, res) => {
   try {
-    const db = await connectToDatabase(); // Asegúrate de que db esté conectado
+    const db = await connectToDatabase();
     const almacen = await db.collection('almacen').findOne({ usuarioId: new ObjectId(req.user.id) });
-    
+
     if (!almacen) {
       return res.status(404).json({ message: 'Almacén no encontrado' });
     }
-    res.status(200).json(almacen);
+
+    // Actualizar los ingredientes para incluir el nombre en español
+    const ingredientesActualizados = await Promise.all(
+      almacen.ingredientes.map(async (ingrediente) => {
+        const ingredienteDb = await db.collection('ingredientes').findOne({ nombreOriginal: ingrediente.nombre });
+    
+        return {
+          ...ingrediente,
+          nombreEspanol: ingredienteDb ? ingredienteDb.nombreEspanol : ingrediente.nombre, // Usar el nombre en español si está disponible
+          img: ingrediente.img || ingredienteDb?.image || '' // Asegúrate de usar 'image' o el campo correcto en la base de datos
+        };
+      })
+    );
+
+    res.status(200).json({ ...almacen, ingredientes: ingredientesActualizados });
   } catch (error) {
+    console.error('Error al obtener el almacén:', error.message);
     res.status(500).json({ error: 'Error al obtener el almacén' });
   }
 });
 
-// Agregar ingredientes al almacen
+// Ruta para agregar ingredientes al almacén
 app.post('/almacen/registro', authenticateToken, async (req, res) => {
   const { ingredientes } = req.body;
 
   try {
-    const db = await connectToDatabase(); // Conectar a la base de datos
-    const ingredientesTraducidos = ingredientes.map(ing => ({
-      nombre: traducirIngredienteAIngles(ing.nombre),  // Traducir el ingrediente a inglés
-      cantidad: convertirMedida(ing.cantidad, ing.unidad), // Convertir la cantidad a gramos o mililitros
-      fechaIngreso: new Date(),
-      perecedero: ing.perecedero || false
-    }));
+    const db = await connectToDatabase();
 
-    await crearOActualizarAlmacen(db, req.user.id, ingredientesTraducidos); // Usar los ingredientes traducidos
+    const ingredientesParaRegistrar = await Promise.all(
+      ingredientes.map(async (ing) => {
+        const nombreParaBuscar = ing.nombreOriginal || ing.nombre || ing.nombreEspanol;
+        if (!nombreParaBuscar) {
+          throw new Error(`El ingrediente no tiene nombre válido: ${JSON.stringify(ing)}`);
+        }
+
+        const ingredienteDb = await db.collection('ingredientes').findOne({
+          $or: [
+            { nombreOriginal: nombreParaBuscar.toLowerCase() },
+            { nombreEspanol: nombreParaBuscar.toLowerCase() }
+          ]
+        });
+
+        if (!ingredienteDb) {
+          throw new Error(`El ingrediente ${nombreParaBuscar} no existe en la base de datos de ingredientes`);
+        }
+
+        // Aquí se asegura de que la imagen esté presente en el objeto que se guardará en el almacén
+        return {
+          nombre: nombreParaBuscar.toLowerCase(),
+          nombreEspanol: ingredienteDb.nombreEspanol || ing.nombreEspanol,
+          cantidad: ing.cantidad,
+          img: ing.image || ingredienteDb.image, // Verificar que la imagen existe en 'ing' o 'ingredienteDb'
+          fechaIngreso: new Date(),
+          perecedero: ing.perecedero || false
+        };
+      })
+    );
+
+    await crearOActualizarAlmacen(db, req.user.id, ingredientesParaRegistrar);
     res.status(200).json({ message: 'Alimentos registrados o actualizados en el almacén' });
   } catch (error) {
     console.error('Error al registrar alimentos:', error);
@@ -637,10 +729,59 @@ app.delete('/almacen/eliminar', authenticateToken, async (req, res) => {
 
 // Reducir la cantidad de un ingrediente en el almacén
 app.put('/almacen/reducir', authenticateToken, async (req, res) => {
-  const { nombreIngrediente, cantidadReducir } = req.body; // El nombre del ingrediente y la cantidad a reducir
+  const { nombreIngrediente, cantidadReducir } = req.body;
 
-  if (!nombreIngrediente || !cantidadReducir) {
-    return res.status(400).json({ message: 'Debe proporcionar el nombre del ingrediente y la cantidad a reducir' });
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Buscar el ingrediente en la colección de ingredientes importados
+    const ingredienteDb = await db.collection('ingredientes').findOne({ nombreOriginal: nombreIngrediente.toLowerCase() });
+    if (!ingredienteDb) {
+      return res.status(400).json({ message: `El ingrediente ${nombreIngrediente} no existe en la base de datos` });
+    }
+
+    // Continuar con la lógica para reducir la cantidad en el almacén del usuario
+    const almacen = await db.collection('almacen').findOne({ usuarioId });
+    if (!almacen) {
+      return res.status(404).json({ message: 'Almacén no encontrado' });
+    }
+
+    const ingredienteEnAlmacen = almacen.ingredientes.find(item => item.nombre === nombreIngrediente.toLowerCase());
+
+    if (!ingredienteEnAlmacen || ingredienteEnAlmacen.cantidad < cantidadReducir) {
+      return res.status(400).json({ message: 'No hay suficiente cantidad para reducir' });
+    }
+
+    // Reducir la cantidad
+    ingredienteEnAlmacen.cantidad -= cantidadReducir;
+    if (ingredienteEnAlmacen.cantidad <= 0) {
+      // Eliminar el ingrediente si la cantidad llega a 0
+      await db.collection('almacen').updateOne(
+        { usuarioId },
+        { $pull: { ingredientes: { nombre: nombreIngrediente.toLowerCase() } } }
+      );
+    } else {
+      // Actualizar la cantidad
+      await db.collection('almacen').updateOne(
+        { usuarioId, 'ingredientes.nombre': nombreIngrediente.toLowerCase() },
+        { $set: { 'ingredientes.$.cantidad': ingredienteEnAlmacen.cantidad } }
+      );
+    }
+
+    res.status(200).json({ message: 'Cantidad reducida correctamente' });
+  } catch (error) {
+    console.error('Error al reducir la cantidad:', error.message);
+    res.status(500).json({ error: 'Error al reducir la cantidad' });
+  }
+});
+
+// Aumentar la cantidad de un ingrediente en el almacén
+app.put('/almacen/aumentar', authenticateToken, async (req, res) => {
+  const { nombreIngrediente, cantidadAumentar } = req.body; // El nombre del ingrediente y la cantidad a aumentar
+
+  if (!nombreIngrediente || !cantidadAumentar) {
+    return res.status(400).json({ message: 'Debe proporcionar el nombre del ingrediente y la cantidad a aumentar' });
   }
 
   try {
@@ -660,33 +801,19 @@ app.put('/almacen/reducir', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: `Ingrediente ${nombreIngrediente} no encontrado en el almacén` });
     }
 
-    // Verificar si se puede reducir la cantidad
-    if (ingrediente.cantidad < cantidadReducir) {
-      return res.status(400).json({ message: 'La cantidad a reducir es mayor que la cantidad disponible' });
-    }
+    // Aumentar la cantidad del ingrediente
+    ingrediente.cantidad += cantidadAumentar;
 
-    // Reducir la cantidad del ingrediente
-    ingrediente.cantidad -= cantidadReducir;
+    // Actualizar la cantidad del ingrediente en el almacén
+    await db.collection('almacen').updateOne(
+      { usuarioId, 'ingredientes.nombre': nombreIngrediente.toLowerCase() },
+      { $set: { 'ingredientes.$.cantidad': ingrediente.cantidad } }
+    );
 
-    // Si la cantidad llega a 0, eliminar el ingrediente del almacén
-    if (ingrediente.cantidad === 0) {
-      await db.collection('almacen').updateOne(
-        { usuarioId },
-        { $pull: { ingredientes: { nombre: nombreIngrediente.toLowerCase() } } }
-      );
-      return res.status(200).json({ message: `Ingrediente ${nombreIngrediente} eliminado ya que llegó a 0` });
-    } else {
-      // Actualizar la cantidad del ingrediente en el almacén
-      await db.collection('almacen').updateOne(
-        { usuarioId, 'ingredientes.nombre': nombreIngrediente.toLowerCase() },
-        { $set: { 'ingredientes.$.cantidad': ingrediente.cantidad } }
-      );
-    }
-
-    res.status(200).json({ message: `Cantidad de ${nombreIngrediente} reducida correctamente` });
+    res.status(200).json({ message: `Cantidad de ${nombreIngrediente} aumentada correctamente` });
   } catch (error) {
-    console.error('Error al reducir la cantidad del ingrediente:', error.message);
-    res.status(500).json({ error: 'Error al reducir la cantidad del ingrediente' });
+    console.error('Error al aumentar la cantidad del ingrediente:', error.message);
+    res.status(500).json({ error: 'Error al aumentar la cantidad del ingrediente' });
   }
 });
 
