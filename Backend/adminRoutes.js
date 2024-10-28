@@ -195,7 +195,7 @@ router.post('/usuarios', authenticateToken, checkRole('admin'), async (req, res)
   }
 });
 module.exports = router;
-
+//========================================RECLAMOS=============================================
 // Ruta para obtener todos los reclamos (admin)
 router.get('/reclamos', authenticateToken, checkRole('admin'), async (req, res) => {
   try {
@@ -245,8 +245,7 @@ router.put('/reclamos/:id', authenticateToken, checkRole('admin'), async (req, r
     await client.close();
   }
 });
-
-
+//=====================================================================================
 // Verificar si la carpeta 'uploads' existe, si no, crearla
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -376,7 +375,7 @@ router.delete('/categorias/:id', authenticateToken, checkRole('admin'), async (r
     await client.close();
   }
 });
-
+//=====================================================================================
 //===============================================
 // CRUD Ingredientes
 //===============================================
@@ -521,7 +520,7 @@ router.delete('/ingredientes/:id', authenticateToken, checkRole('admin'), async 
     await client.close();
   }
 });
-
+//=====================================================================================
 // ======================= CRUD DE RECETAS =======================
 
 // Crear una receta
@@ -682,6 +681,6 @@ router.delete('/recetas/:id', authenticateToken, checkRole('admin'), async (req,
     await client.close();
   }
 });
+//=====================================================================================
 
-
-module.exports = router; //NO BORRAR
+module.exports = router;
