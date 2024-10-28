@@ -144,9 +144,13 @@ async function cargarIngredientesDesdeDB() {
   try {
     const db = await connectToDatabase();
     const ingredientes = await db.collection('ingredientes').find({}).toArray();
+    
     ingredientes.forEach(ingrediente => {
-      ingredientesMap[ingrediente.nombreOriginal.toLowerCase()] = ingrediente.nombreEspanol;
+      if (ingrediente.nombreOriginal) { // Verificamos que nombreOriginal exista
+        ingredientesMap[ingrediente.nombreOriginal.toLowerCase()] = ingrediente.nombreEspanol || ingrediente.nombreOriginal;
+      }
     });
+
     console.log('Ingredientes cargados correctamente desde la base de datos');
   } catch (error) {
     console.error('Error al cargar los ingredientes desde la base de datos:', error);
