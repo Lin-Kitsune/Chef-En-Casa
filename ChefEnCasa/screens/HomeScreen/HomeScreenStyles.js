@@ -186,6 +186,18 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: '#fff',
   },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 85,
+    right: 20,
+    backgroundColor: '#619537',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+  },
 });
 
 export default styles;
