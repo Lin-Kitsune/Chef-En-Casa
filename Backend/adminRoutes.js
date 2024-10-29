@@ -7,6 +7,16 @@ const { authenticateToken, checkRole } = require('./middleware/authMiddleware');
 const multer = require('multer'); // Middleware para manejar archivos
 const fs = require('fs');
 const path = require('path');
+const mongoose = require('mongoose'); // models/Notificacion.js (solo si usas Mongoose)
+
+const NotificacionSchema = new mongoose.Schema({
+  mensaje: { type: String, required: true },
+  tipo: { type: String, enum: ['ingrediente', 'receta'], required: true },
+  fecha: { type: Date, default: Date.now },
+  visto: { type: Boolean, default: false }
+});
+
+module.exports = mongoose.model('Notificacion', NotificacionSchema);
 
 dotenv.config();
 const router = express.Router();
@@ -380,7 +390,7 @@ router.delete('/categorias/:id', authenticateToken, checkRole('admin'), async (r
 // CRUD Ingredientes
 //===============================================
 
-// Ruta para agregar un nuevo ingrediente (asociado a una categoría)
+// Ruta para agregar un nuevo ingrediente (asociado a una categoría, con notificación)
 router.post('/ingredientes', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
   const { nombre, categoria } = req.body;
   const imagen = req.file ? req.file.path : null;
@@ -393,6 +403,7 @@ router.post('/ingredientes', authenticateToken, checkRole('admin'), upload.singl
     await client.connect();
     const db = client.db('chefencasa');
     const ingredientesCollection = db.collection('ingredientes');
+    const notificacionesCollection = db.collection('notificaciones');  // Colección de notificaciones
 
     // Verificar si el ingrediente ya existe
     const ingredienteExistente = await ingredientesCollection.findOne({ nombre });
@@ -407,17 +418,25 @@ router.post('/ingredientes', authenticateToken, checkRole('admin'), upload.singl
       return res.status(400).json({ message: 'La categoría no existe' });
     }
 
-    // Crear nuevo ingrediente
+    // Crear el nuevo ingrediente
     const nuevoIngrediente = {
       nombre,
       categoria,
       imagen,
       fechaCreacion: new Date(),
     };
-
     await ingredientesCollection.insertOne(nuevoIngrediente);
 
-    res.status(201).json({ message: 'Ingrediente agregado exitosamente', ingrediente: nuevoIngrediente });
+    // Crear una notificación
+    const notificacion = {
+      mensaje: `Nuevo ingrediente agregado: ${nombre}`,
+      tipo: 'ingrediente',
+      fecha: new Date(),
+      visto: false
+    };
+    await notificacionesCollection.insertOne(notificacion);
+
+    res.status(201).json({ message: 'Ingrediente agregado y notificación creada', ingrediente: nuevoIngrediente });
   } catch (error) {
     console.error('Error al agregar ingrediente:', error);
     res.status(500).json({ message: 'Error al agregar ingrediente' });
@@ -425,6 +444,7 @@ router.post('/ingredientes', authenticateToken, checkRole('admin'), upload.singl
     await client.close();
   }
 });
+
 
 // Obtener todos los ingredientes
 router.get('/ingredientes', authenticateToken, async (req, res) => {
@@ -523,8 +543,7 @@ router.delete('/ingredientes/:id', authenticateToken, checkRole('admin'), async 
 //=====================================================================================
 // ======================= CRUD DE RECETAS =======================
 
-// Crear una receta
-// Crear una receta
+// Crear una receta con notificación
 router.post('/recetas', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
   const { titulo, duracion, ingredientes, porciones, paso, valoracion } = req.body;
   const imagen = req.file ? req.file.path : null;
@@ -538,8 +557,9 @@ router.post('/recetas', authenticateToken, checkRole('admin'), upload.single('im
     const db = client.db('chefencasa');
     const ingredientesCollection = db.collection('ingredientes');
     const recetasCollection = db.collection('recetas');
+    const notificacionesCollection = db.collection('notificaciones'); // Colección de notificaciones
 
-    // Verificar que todos los ingredientes existen en la base de datos por nombre
+    // Verificar que todos los ingredientes existen en la base de datos
     const ingredientesArray = JSON.parse(ingredientes); // Convertir el JSON de ingredientes en un array
     const ingredientesValidos = await ingredientesCollection.find({ nombre: { $in: ingredientesArray.map(i => i.nombre) } }).toArray();
 
@@ -547,19 +567,40 @@ router.post('/recetas', authenticateToken, checkRole('admin'), upload.single('im
       return res.status(400).json({ message: 'Uno o más ingredientes no existen en la base de datos' });
     }
 
+    // Formatear ingredientes con la cantidad
+    const ingredientesFinal = ingredientesArray.map(i => {
+      const ingredienteValido = ingredientesValidos.find(iv => iv.nombre === i.nombre);
+      return {
+        nombre: ingredienteValido.nombre,
+        cantidad: i.cantidad
+      };
+    });
+
+    // Crear el objeto de la nueva receta
     const nuevaReceta = {
       titulo,
       duracion: Number(duracion),
       valoracion: valoracion ? Number(valoracion) : 0,  // Valoración predeterminada en 0 si no se especifica
       porciones: porciones ? Number(porciones) : 0,  // Porciones predeterminadas en 0 si no se especifica
-      ingredientes: ingredientesArray,
-      imagen: imagen || req.body.imagenAnterior,
+      ingredientes: ingredientesFinal,
+      imagen,
       paso: paso,
       fechaCreacion: new Date(),
     };
 
+    // Guardar la nueva receta en la base de datos
     await recetasCollection.insertOne(nuevaReceta);
-    res.status(201).json({ message: 'Receta creada exitosamente', receta: nuevaReceta });
+
+    // Crear una notificación para informar a los usuarios
+    const notificacion = {
+      mensaje: `Nueva receta agregada: ${titulo}`,
+      tipo: 'receta',
+      fecha: new Date(),
+      visto: false // Este campo indica si la notificación ha sido vista por el usuario
+    };
+    await notificacionesCollection.insertOne(notificacion);
+
+    res.status(201).json({ message: 'Receta creada y notificación generada', receta: nuevaReceta });
   } catch (error) {
     console.error('Error al crear receta:', error);
     res.status(500).json({ message: 'Error al crear receta', error: error.message });
