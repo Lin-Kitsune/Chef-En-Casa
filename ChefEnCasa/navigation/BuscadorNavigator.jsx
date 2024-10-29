@@ -1,5 +1,4 @@
 import React from 'react';
-import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import BuscadorScreen from '../screens/BuscadorScreen/BuscadorScreen';
 import RecipeDetailScreen from '../screens/RecipeDetailScreen/RecipeDetailScreen'; // Importa la pantalla de detalles
