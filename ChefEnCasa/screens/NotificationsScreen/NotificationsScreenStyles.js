@@ -15,7 +15,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   notificationList: {
-    marginTop: 10,
+    marginTop: 1,
   },
   notificationCard: {
     backgroundColor: '#FFFFFF',
@@ -84,6 +84,20 @@ const styles = StyleSheet.create({
   emptyStateSubText: {
     fontSize: 14,
     color: '#AAA',
+  },
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#619537',
+    marginVertical: 10,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  clockIcon: {
+    marginRight: 4,
   },
 });
 
