@@ -108,30 +108,37 @@ useFocusEffect(
 
       {/* Categorías */}
       <View style={styles.categoriesContainer}>
-      <TouchableOpacity 
-        style={[styles.categoryButton, { backgroundColor: '#fae19c' }]}
-        onPress={() => navigation.navigate('Desayuno')}  // Esto navega a la pantalla de Desayuno
-      >
-        <Image source={require('../../assets/images/desayuno.png')} style={styles.categoryImage} />
-        <Text style={styles.categoryText}>DESAYUNO</Text> 
-      </TouchableOpacity>
-
-
-        <TouchableOpacity style={[styles.categoryButton, { backgroundColor: '#d2afdf' }]} onPress={() => navigation.navigate('Almuerzo')}>
-          <Image source={require('../../assets/images/almuerzo.png')} style={styles.categoryImage} />
-          <Text style={styles.categoryText}>ALMUERZO</Text>
+        <TouchableOpacity 
+          style={[styles.categoryButton, { backgroundColor: '#fae19c' }]}
+          onPress={() => navigation.navigate('Desayuno')}  // Esto navega a la pantalla de Desayuno
+        >
+          <Image source={require('../../assets/images/desayuno.png')} style={styles.categoryImage} />
+          <Text style={styles.categoryText}>DESAYUNO</Text> 
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.categoryButton, { backgroundColor: '#fdd499' }]} onPress={() => navigation.navigate('Cena')}>
-          <Image source={require('../../assets/images/cena.png')} style={styles.categoryImage} />
-          <Text style={styles.categoryText}>CENA</Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.categoryButton, { backgroundColor: '#7fd7bb' }]} onPress={() => navigation.navigate('Reposteria')}>
-          <Image source={require('../../assets/images/reposteria.png')} style={styles.categoryImage} />
-          <Text style={styles.categoryText}>REPOSTERIA</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={[styles.categoryButton, { backgroundColor: '#d2afdf' }]} onPress={() => navigation.navigate('Almuerzo')}>
+            <Image source={require('../../assets/images/almuerzo.png')} style={styles.categoryImage} />
+            <Text style={styles.categoryText}>ALMUERZO</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.categoryButton, { backgroundColor: '#fdd499' }]} onPress={() => navigation.navigate('Cena')}>
+            <Image source={require('../../assets/images/cena.png')} style={styles.categoryImage} />
+            <Text style={styles.categoryText}>CENA</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.categoryButton, { backgroundColor: '#7fd7bb' }]} onPress={() => navigation.navigate('Reposteria')}>
+            <Image source={require('../../assets/images/reposteria.png')} style={styles.categoryImage} />
+            <Text style={styles.categoryText}>REPOSTERIA</Text>
+          </TouchableOpacity>
       </View>
+        {/* Botón flotante de consultas */}
+        <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={() => navigation.navigate('Consultas')} // Cambia "ConsultaScreen" por "Consultas"
+        >
+          <Icon name="comments" size={24} color="#ffffff" />
+        </TouchableOpacity>  
     </View>
   );
 };
