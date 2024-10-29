@@ -1,5 +1,3 @@
-// src/services/recetaService.js
-
 import axios from 'axios';
 import { getToken } from './authService';
 
@@ -23,31 +21,25 @@ export const getAllRecetas = async () => {
 export const createReceta = async (recetaData) => {
   try {
     const token = await getToken();
-    const formData = new FormData();
-    for (const key in recetaData) {
-      formData.append(key, recetaData[key]);
-    }
-    const response = await axios.post(API_URL, formData, {
+    const response = await axios.post(API_URL, recetaData, {
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'multipart/form-data', // Asegúrate de tener este encabezado
       },
     });
     return response.data;
   } catch (error) {
-    console.error('Error al crear receta:', error.response || error.message);
+    console.error('Error al crear receta:', error.response?.data || error.message);
     throw error;
   }
 };
 
+
 // Actualizar una receta
-export const updateReceta = async (id, recetaData) => {
+// recetaService.js
+export const updateReceta = async (id, formData) => {
   try {
     const token = await getToken();
-    const formData = new FormData();
-    for (const key in recetaData) {
-      formData.append(key, recetaData[key]);
-    }
     const response = await axios.put(`${API_URL}/${id}`, formData, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -60,6 +52,7 @@ export const updateReceta = async (id, recetaData) => {
     throw error;
   }
 };
+
 
 // Eliminar una receta
 export const deleteReceta = async (id) => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faStar, faClock, faPlus, faFilter, faTimes, faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { getAllRecetas, createReceta, updateReceta, deleteReceta } from '../../services/recetaService';
+import { getAllIngredientes } from '../../services/ingredientesService';
 import './Recetas.css';
 
 // faUtensils
@@ -30,7 +31,7 @@ const Recetas = () => {
   const [newRecipe, setNewRecipe] = useState({
     titulo: '',         // Nombre de la receta
     duracion: '',       // Duración en minutos
-    ingredientes: [],   // Lista de ingredientes
+    ingredientes: [],   // Lista de ingredientes, inicializado como un array vacío
     porciones: '',      // Número de porciones
     imagen: null,       // Imagen del plato
     paso: '',           // Pasos de la receta
@@ -39,25 +40,31 @@ const Recetas = () => {
   
 
   const [ingredientSearch, setIngredientSearch] = useState('');
-  const [selectedIngredient, setSelectedIngredient] = useState({ name: '', quantity: '' });
-  const availableIngredients = ['Mango', 'Plátano', 'Yogur', 'Cúrcuma', 'Pimienta negra', 'Fresas'];
+  const [selectedIngredient, setSelectedIngredient] = useState({ nombre: '', cantidad: '' });
+  const [availableIngredients, setAvailableIngredients] = useState([]);
 
   // Función para abrir y cerrar el modal de filtro
   const toggleFilterModal = () => {
     setFilterModalVisible(!filterModalVisible);
   };
 
-  // Cargar recetas desde el backend
-  useEffect(() => {
-    const fetchRecetas = async () => {
+   // Cargar recetas e ingredientes desde el backend al montar el componente
+   useEffect(() => {
+    const fetchRecetasAndIngredientes = async () => {
       try {
+        // Cargar recetas
         const recetasData = await getAllRecetas();
         setRecetas(recetasData);
+
+        // Cargar ingredientes
+        const ingredientesData = await getAllIngredientes();
+        setAvailableIngredients(ingredientesData.map(ing => ing.nombreEspanol || ing.nombre)); // Guardar solo los nombres en availableIngredients
       } catch (error) {
-        console.error('Error al cargar recetas:', error);
+        console.error('Error al cargar datos:', error);
       }
     };
-    fetchRecetas();
+
+    fetchRecetasAndIngredientes();
   }, []);
 
   // Función para manejar cambios en los campos de la receta nueva
@@ -67,19 +74,19 @@ const Recetas = () => {
 
   // Función para agregar un nuevo ingrediente
   const addIngredient = () => {
-    if (selectedIngredient.name && selectedIngredient.quantity) {
-      setNewRecipe({
-        ...newRecipe,
-        ingredients: [...newRecipe.ingredients, selectedIngredient]
-      });
-      setSelectedIngredient({ name: '', quantity: '' });
+    if (selectedIngredient.nombre && selectedIngredient.cantidad) {
+      setNewRecipe((prevRecipe) => ({
+        ...prevRecipe,
+        ingredientes: [...(prevRecipe.ingredientes || []), selectedIngredient]
+      }));
+      setSelectedIngredient({ nombre: '', cantidad: '' });
     }
   };
 
   // Función para eliminar un ingrediente de la lista
   const removeIngredient = (index) => {
-    const updatedIngredients = newRecipe.ingredients.filter((_, i) => i !== index);
-    setNewRecipe({ ...newRecipe, ingredients: updatedIngredients });
+    const updatedIngredients = newRecipe.ingredientes.filter((_, i) => i !== index);
+    setNewRecipe({ ...newRecipe, ingredientes: updatedIngredients });
   };
 
   // Función para limpiar filtros
@@ -99,7 +106,13 @@ const Recetas = () => {
 
   // Función para abrir el modal de edición
   const openEditModal = (recipe) => {
-    setSelectedRecipe(recipe);
+    setSelectedRecipe({
+      ...recipe,
+      ingredientes: recipe.ingredientes || [],  // Asegura que ingredientes siempre es un array
+      paso: recipe.paso || '',
+      valoracion: recipe.valoracion || 0,
+      imagen: recipe.imagen || null,
+    });
     setEditRecipeModalVisible(true);
   };
 
@@ -107,11 +120,15 @@ const Recetas = () => {
   const closeEditModal = () => {
     setEditRecipeModalVisible(false);
   };
-
+  
   // Filtrar recetas en base a búsqueda y filtros
-  const filteredRecetas = recetas
+const filteredRecetas = recetas
     .filter((receta) => {
-      const matchesSearch = receta.titulo.toLowerCase().includes(searchQuery.toLowerCase());
+      // Verifica que el título exista antes de aplicar toLowerCase()
+      const matchesSearch = receta.titulo 
+        ? receta.titulo.toLowerCase().includes(searchQuery.toLowerCase()) 
+        : false;
+        
       const matchesCategory = classification ? receta.categoria === classification : true;
       const matchesRating = receta.valoracion >= minRating;
       const matchesDuration = durationFilter
@@ -119,6 +136,7 @@ const Recetas = () => {
           (durationFilter === 'medium' && receta.duracion >= 10 && receta.duracion <= 30) ||
           (durationFilter === 'long' && receta.duracion > 30)
         : true;
+        
       return matchesSearch && matchesCategory && matchesRating && matchesDuration;
     })
     .sort((a, b) => {
@@ -131,45 +149,67 @@ const Recetas = () => {
   const handleAddRecipe = async () => {
     try {
       const formData = new FormData();
-      Object.keys(newRecipe).forEach((key) => {
-        if (key === 'ingredients') {
-          formData.append(key, JSON.stringify(newRecipe[key]));
-        } else if (key === 'image' && newRecipe.image) {
-          formData.append(key, newRecipe.image);
-        } else {
-          formData.append(key, newRecipe[key]);
-        }
-      });
+  
+      // Agrega cada campo al FormData de acuerdo a lo que enviaste en Postman
+      formData.append('titulo', newRecipe.titulo);
+      formData.append('duracion', newRecipe.duracion);
+      formData.append('porciones', newRecipe.porciones);
+      formData.append('paso', newRecipe.paso);
+      formData.append('valoracion', newRecipe.valoracion);
+  
+      // Asegúrate de que ingredientes esté en formato JSON
+      formData.append('ingredientes', JSON.stringify(newRecipe.ingredientes));
+  
+      // Añade la imagen solo si se ha seleccionado una
+      if (newRecipe.imagen) {
+        formData.append('imagen', newRecipe.imagen);
+      }
+  
+      // Verifica el contenido de FormData
+      for (let pair of formData.entries()) {
+        console.log(`${pair[0]}: ${pair[1]}`);
+      }
+  
       const addedRecipe = await createReceta(formData);
       setRecetas([...recetas, addedRecipe]);
       setAddRecipeModalVisible(false);
     } catch (error) {
       console.error('Error al agregar receta:', error);
     }
-  };
+  };  
 
   // Función para actualizar una receta
-const handleUpdateRecipe = async (updatedRecipe) => {
-  try {
-    const formData = new FormData();
-    Object.keys(updatedRecipe).forEach((key) => {
-      if (key === 'ingredientes') {
-        formData.append(key, JSON.stringify(updatedRecipe[key])); // Convertimos ingredientes a JSON
-      } else if (key === 'imagen' && updatedRecipe.imagen instanceof File) {
-        formData.append(key, updatedRecipe.imagen); // Solo incluimos imagen si es un nuevo archivo
-      } else {
-        formData.append(key, updatedRecipe[key]);
+  const handleUpdateRecipe = async () => {
+    try {
+      const formData = new FormData();
+  
+      // Asegúrate de que los valores de selectedRecipe estén bien configurados en el FormData
+      formData.append('titulo', selectedRecipe.titulo);
+      formData.append('duracion', selectedRecipe.duracion);
+      formData.append('porciones', selectedRecipe.porciones);
+      formData.append('paso', selectedRecipe.paso);
+      formData.append('valoracion', selectedRecipe.valoracion);
+  
+      // Convertir los ingredientes a JSON para enviarlos correctamente
+      formData.append('ingredientes', JSON.stringify(selectedRecipe.ingredientes));
+  
+      // Si hay una nueva imagen seleccionada, añadirla
+      if (selectedRecipe.imagen && selectedRecipe.imagen instanceof File) {
+        formData.append('imagen', selectedRecipe.imagen);
       }
-    });
-
-    const updated = await updateReceta(updatedRecipe._id, formData); // Enviar `formData` al backend
-    setRecetas(recetas.map((receta) => (receta._id === updated._id ? updated : receta)));
-    closeEditModal();
-  } catch (error) {
-    console.error('Error al actualizar receta:', error);
-  }
-};
-
+  
+      // Verificación de contenido de FormData antes de enviarlo
+      for (let pair of formData.entries()) {
+        console.log(`${pair[0]}: ${pair[1]}`);
+      }
+  
+      const updatedRecipe = await updateReceta(selectedRecipe._id, formData);
+      setRecetas(recetas.map((receta) => (receta._id === updatedRecipe._id ? updatedRecipe : receta)));
+      closeEditModal();
+    } catch (error) {
+      console.error('Error al actualizar receta:', error);
+    }
+  };  
 
   // Función para eliminar una receta
   const handleDeleteRecipe = async (id) => {
@@ -183,7 +223,7 @@ const handleUpdateRecipe = async (updatedRecipe) => {
 
   // Filtrar ingredientes disponibles según la búsqueda
   const filteredIngredients = availableIngredients.filter((ingredient) =>
-    ingredient.toLowerCase().includes(ingredientSearch.toLowerCase())
+    ingredient && ingredient.toLowerCase().includes(ingredientSearch.toLowerCase())
   );
 
   return (
@@ -223,7 +263,10 @@ const handleUpdateRecipe = async (updatedRecipe) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRecetas.map((receta) => (
           <div key={receta._id} className="bg-white rounded-lg shadow-md p-4">
-            <img src={`http://localhost:4000/${receta.imagen}`} alt={receta.titulo} className="rounded-lg mb-4 w-full h-40 object-cover" />
+            <img src={`http://localhost:4000/${receta.imagen}`} 
+            crossOrigin="anonymous" 
+            alt={receta.titulo} 
+            className="rounded-lg mb-4 w-full h-40 object-cover" />
             <h3 className="text-lg font-semibold mb-2">{receta.titulo}</h3>
             <p className="text-gray-600">
               <FontAwesomeIcon icon={faStar} className="text-yellow-500 mr-2" /> {receta.valoracion}
@@ -249,8 +292,6 @@ const handleUpdateRecipe = async (updatedRecipe) => {
           <div className="bg-white rounded-lg p-6 w-full max-w-6xl">
             <h2 className="text-lg font-bold mb-4">Agregar Receta</h2>
             <div className="grid grid-cols-4 gap-4"> 
-              
-              {/* Título de la receta */}
               <div className="col-span-2">
                 <label className="block mb-2 font-semibold">Título</label>
                 <input 
@@ -261,8 +302,6 @@ const handleUpdateRecipe = async (updatedRecipe) => {
                   onChange={(e) => handleRecipeChange('titulo', e.target.value)}
                 />
               </div>
-
-              {/* Duración */}
               <div>
                 <label className="block mb-2 font-semibold">Duración (minutos)</label>
                 <input 
@@ -273,8 +312,6 @@ const handleUpdateRecipe = async (updatedRecipe) => {
                   onChange={(e) => handleRecipeChange('duracion', e.target.value)}
                 />
               </div>
-
-              {/* Porciones */}
               <div>
                 <label className="block mb-2 font-semibold">Porciones</label>
                 <input 
@@ -285,8 +322,6 @@ const handleUpdateRecipe = async (updatedRecipe) => {
                   onChange={(e) => handleRecipeChange('porciones', e.target.value)}
                 />
               </div>
-
-              {/* Valoración inicial */}
               <div>
                 <label className="block mb-2 font-semibold">Valoración inicial</label>
                 <input 
@@ -299,9 +334,7 @@ const handleUpdateRecipe = async (updatedRecipe) => {
                   onChange={(e) => handleRecipeChange('valoracion', e.target.value)}
                 />
               </div>
-
-              {/* Imagen de la receta */}
-              <div className="col-span-2 flex flex-col justify-between">
+              <div className="col-span-2">
                 <label className="block mb-2 font-semibold">Imagen</label>
                 <input 
                   type="file" 
@@ -309,8 +342,6 @@ const handleUpdateRecipe = async (updatedRecipe) => {
                   onChange={(e) => handleRecipeChange('imagen', e.target.files[0])}
                 />
               </div>
-
-              {/* Ingredientes */}
               <div className="col-span-2">
                 <label className="block mb-2 font-semibold">Ingredientes</label>
                 <div className="flex space-x-4 mb-2">
@@ -325,11 +356,11 @@ const handleUpdateRecipe = async (updatedRecipe) => {
                     type="text" 
                     className="w-1/3 border border-gray-300 rounded-lg p-2" 
                     placeholder="Cantidad (ej. 1 cdt)"
-                    value={selectedIngredient.quantity}
-                    onChange={(e) => setSelectedIngredient({ ...selectedIngredient, quantity: e.target.value })}
+                    value={selectedIngredient.cantidad}
+                    onChange={(e) => setSelectedIngredient({ ...selectedIngredient, cantidad: e.target.value })}
                   />
                   <button 
-                    className="bg-verde-chef text-white py-2 px-4 rounded-full font-bold hover:bg-green-600 transition duration-300"
+                    className="bg-verde-chef text-white py-2 px-4 rounded-full"
                     onClick={addIngredient}
                   >
                     Agregar
@@ -340,7 +371,7 @@ const handleUpdateRecipe = async (updatedRecipe) => {
                     <li 
                       key={index} 
                       className="cursor-pointer py-1 hover:bg-gray-200"
-                      onClick={() => setSelectedIngredient({ name: ingredient, quantity: '' })}
+                      onClick={() => setSelectedIngredient({ nombre: ingredient, cantidad: '' })}
                     >
                       {ingredient}
                     </li>
@@ -349,8 +380,8 @@ const handleUpdateRecipe = async (updatedRecipe) => {
                 <ul>
                   {newRecipe.ingredientes.map((ingredient, index) => (
                     <li key={index} className="flex justify-between border-b py-2">
-                      <span>{ingredient.name}</span>
-                      <span>{ingredient.quantity}</span>
+                      <span>{ingredient.nombre}</span>
+                      <span>{ingredient.cantidad}</span>
                       <button 
                         onClick={() => removeIngredient(index)}
                         className="text-red-500 ml-2"
@@ -361,8 +392,6 @@ const handleUpdateRecipe = async (updatedRecipe) => {
                   ))}
                 </ul>
               </div>
-
-              {/* Pasos de la receta */}
               <div className="col-span-2">
                 <label className="block mb-2 font-semibold">Paso a paso</label>
                 <textarea 
@@ -373,8 +402,6 @@ const handleUpdateRecipe = async (updatedRecipe) => {
                 />
               </div>
             </div>
-
-            {/* Botones de acción */}
             <div className="flex justify-end mt-4 space-x-4">
               <button 
                 className="bg-gray-300 text-black py-2 px-4 rounded-full"
