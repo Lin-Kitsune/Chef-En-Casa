@@ -602,7 +602,14 @@ const conversiones = {
   "c": 240,            // 1 c = 240 gramos
   "t": 50,             // 1 T = 50 gramos
   "small": 100,       // 1 small = 100 gramos
-  "small pinch": 0.5  // 1 small pinch = 0.5 gramos
+  "small pinch": 0.5,  // 1 small pinch = 0.5 gramos
+  "tablespoon": 15,   // 1 tablespoon = 15 gramos
+  "teaspoon": 5,      // 1 teaspoon = 5 gramos
+  "can": 300,         // 1 can = 300 gramos
+  "slice": 5,         // 1 slice = 5 gramos
+  "pinch": 0.5,       // 1 pinch = 0.5 gramos
+  
+
 };
 
 // Función para convertir una cantidad a gramos o mililitros
@@ -625,7 +632,6 @@ function convertirMedida(cantidad, unidad) {
 
   return cantidad * conversionFactor;
 }
-
 //============================================ALMACEN=============================================
 //================================================================================================
 // Revisar almacén
