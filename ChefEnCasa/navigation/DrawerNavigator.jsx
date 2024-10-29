@@ -7,9 +7,33 @@ import NewsScreen from '../screens/NewsScreen/NewsScreen';
 import BottomTabNavigator from './BottomTabNavigator'; 
 import { createStackNavigator } from '@react-navigation/stack';
 import PointsStack from './PointsStack'; 
+import RecipeDetailScreen from '../screens/RecipeDetailScreen/RecipeDetailScreen'; // Importa RecipeDetailScreen
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
+
+// Stack para Home y RecipeDetail
+const HomeStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="HomeTabs" 
+        component={BottomTabNavigator} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="RecipeDetail" 
+        component={RecipeDetailScreen} 
+        options={{ 
+          title: 'Detalles de la Receta',
+          headerStyle: { backgroundColor: '#619537' },
+          headerTintColor: '#fff',
+          headerTitleAlign: 'center',
+        }} 
+      />
+    </Stack.Navigator>
+  );
+};
 
 const NewsStack = () => {
   return (
@@ -49,7 +73,7 @@ const DrawerNavigator = ({ handleLogout }) => { // Asegúrate de recibir `handle
     >
       <Drawer.Screen 
         name="Home" 
-        component={BottomTabNavigator} 
+        component={HomeStack} // Usa HomeStack que incluye BottomTabNavigator y RecipeDetailScreen
         options={{ 
           headerShown: false,
           title: 'Dashboard' 
