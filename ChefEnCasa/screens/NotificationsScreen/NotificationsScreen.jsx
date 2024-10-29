@@ -18,6 +18,15 @@ const NotificationsScreen = () => {
     { id: 5, icon: 'exclamation-circle', title: 'Alerta de stock', description: 'El ingrediente "Aguacate" está agotado.', time: moment().subtract(5, 'days'), read: false},
     { id: 6, icon: 'trophy', title: 'Meta alcanzada', description: '¡Has completado tu meta semanal de recetas!', time: moment().subtract(1, 'weeks'), read: true },
     { id: 7, icon: 'shopping-cart', title: 'Actualización en tu lista de compras', description: 'El ingrediente "Leche de almendra" ha sido añadido a tu lista.', time: moment().subtract(2, 'weeks'), read: true },
+    // Notificación promocional del convenio
+    { 
+      id: 8, 
+      icon: 'handshake-o', // Icono que representa un acuerdo
+      title: 'Convenio con Sal de Mar S.A.', 
+      description: '¡Aprovecha nuestro nuevo convenio! Consigue "Sal de Mar Natural" de alta calidad en tu lista de ingredientes. ¡Ideal para realzar el sabor de tus recetas!', 
+      time: moment().subtract(2, 'hours'), 
+      read: false 
+    }
   ]);
 
   // Función para categorizar notificaciones

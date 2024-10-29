@@ -4,6 +4,7 @@ import { TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import CustomDrawerContent from '../screens/Sidebar/CustomDrawerContent'; 
 import NewsScreen from '../screens/NewsScreen/NewsScreen';
+import MetaScreen from '../screens/MetaScreen/MetaScreen';
 import BottomTabNavigator from './BottomTabNavigator'; 
 import { createStackNavigator } from '@react-navigation/stack';
 import PointsStack from './PointsStack'; 
@@ -92,6 +93,18 @@ const DrawerNavigator = ({ handleLogout }) => { // Asegúrate de recibir `handle
         name="PointsStack" 
         component={PointsStack} 
         options={{ headerShown: false }} 
+      />
+      {/* Nueva entrada para "Meta" en el menú lateral */}
+      <Drawer.Screen 
+        name="Meta" 
+        component={MetaScreen} 
+        options={{
+          title: 'Meta',
+          headerShown: true,
+          headerStyle: { backgroundColor: '#619537' },
+          headerTintColor: '#fff',
+          headerTitleAlign: 'center',
+        }}
       />
     </Drawer.Navigator>
   );

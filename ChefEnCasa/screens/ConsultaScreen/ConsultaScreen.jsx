@@ -161,8 +161,9 @@ const ConsultaScreen = ({ navigation }) => {
                       }}
                     >
                       <View style={styles.consultaHeader}>
+                        <Icon name="circle" size={6} color="#619537" style={{ marginRight: 6 }} />
                         <Text style={styles.consultaTitulo}>{consulta.titulo}</Text>
-                        {consulta.respuesta && !consulta.leido && <View style={styles.unreadDot} />}
+                        {consulta.respuesta && !consulta.leido && ( <Icon name="bell" size={14} color="#619537" style={{ marginLeft: 6 }} />)}
                       </View>
                       <Text style={styles.consultaDestinatario}>Para: {consulta.destinatario === 'admin' ? 'Administrador' : 'Nutricionista'}</Text>
                       <Text style={styles.consultaComentario}>{consulta.comentario}</Text>

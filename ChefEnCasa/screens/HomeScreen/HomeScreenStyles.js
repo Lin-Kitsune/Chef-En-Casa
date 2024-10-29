@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-start', // Alinea los botones hacia la izquierda
     alignItems: 'center', // Alinea verticalmente
-    marginHorizontal: 20, // Añade un poco de margen desde el borde izquierdo
+    marginHorizontal: 10, // Añade un poco de margen desde el borde izquierdo
     marginVertical: 10, // Reduce el margen vertical para reducir el espacio
     gap: 20, // Espacio entre los botones
   }, 

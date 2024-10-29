@@ -56,6 +56,17 @@ const CustomDrawerContent = (props) => {
               Puntos
             </Text>
           </TouchableOpacity>
+
+          {/* Nueva entrada para Meta con un icono de gráfico verde */}
+          <TouchableOpacity
+            style={[styles.drawerItem, isActive('Meta') ? styles.activeItem : null]}
+            onPress={() => navigation.navigate('Meta')}
+          >
+            <Icon name="bar-chart" size={24} color={isActive('Meta') ? "#FFF" : "#619537"} />
+            <Text style={[styles.drawerText, isActive('Meta') ? styles.activeText : null]}>
+              Meta
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.logoutContainer}>
@@ -64,6 +75,7 @@ const CustomDrawerContent = (props) => {
             <Text style={styles.drawerText}>Cerrar sesión</Text>
           </TouchableOpacity>
         </View>
+        
       </View>
     </DrawerContentScrollView>
   );
