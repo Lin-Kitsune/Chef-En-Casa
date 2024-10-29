@@ -48,22 +48,23 @@ const Recetas = () => {
     setFilterModalVisible(!filterModalVisible);
   };
 
+  // Función para cargar recetas e ingredientes
+  const fetchRecetasAndIngredientes = async () => {
+    try {
+      // Cargar recetas
+      const recetasData = await getAllRecetas();
+      setRecetas(recetasData);
+
+      // Cargar ingredientes
+      const ingredientesData = await getAllIngredientes();
+      setAvailableIngredients(ingredientesData.map(ing => ing.nombreEspanol || ing.nombre));
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+    }
+  };
+
    // Cargar recetas e ingredientes desde el backend al montar el componente
    useEffect(() => {
-    const fetchRecetasAndIngredientes = async () => {
-      try {
-        // Cargar recetas
-        const recetasData = await getAllRecetas();
-        setRecetas(recetasData);
-
-        // Cargar ingredientes
-        const ingredientesData = await getAllIngredientes();
-        setAvailableIngredients(ingredientesData.map(ing => ing.nombreEspanol || ing.nombre)); // Guardar solo los nombres en availableIngredients
-      } catch (error) {
-        console.error('Error al cargar datos:', error);
-      }
-    };
-
     fetchRecetasAndIngredientes();
   }, []);
 
@@ -145,81 +146,70 @@ const filteredRecetas = recetas
       return 0;
     });
 
-  // Función para agregar una receta nueva
-  const handleAddRecipe = async () => {
-    try {
-      const formData = new FormData();
-  
-      // Agrega cada campo al FormData de acuerdo a lo que enviaste en Postman
-      formData.append('titulo', newRecipe.titulo);
-      formData.append('duracion', newRecipe.duracion);
-      formData.append('porciones', newRecipe.porciones);
-      formData.append('paso', newRecipe.paso);
-      formData.append('valoracion', newRecipe.valoracion);
-  
-      // Asegúrate de que ingredientes esté en formato JSON
-      formData.append('ingredientes', JSON.stringify(newRecipe.ingredientes));
-  
-      // Añade la imagen solo si se ha seleccionado una
-      if (newRecipe.imagen) {
-        formData.append('imagen', newRecipe.imagen);
-      }
-  
-      // Verifica el contenido de FormData
-      for (let pair of formData.entries()) {
-        console.log(`${pair[0]}: ${pair[1]}`);
-      }
-  
-      const addedRecipe = await createReceta(formData);
-      setRecetas([...recetas, addedRecipe]);
-      setAddRecipeModalVisible(false);
-    } catch (error) {
-      console.error('Error al agregar receta:', error);
-    }
-  };  
+// Función para agregar una receta nueva
+const handleAddRecipe = async () => {
+  try {
+    const formData = new FormData();
 
-  // Función para actualizar una receta
-  const handleUpdateRecipe = async () => {
-    try {
-      const formData = new FormData();
-  
-      // Asegúrate de que los valores de selectedRecipe estén bien configurados en el FormData
-      formData.append('titulo', selectedRecipe.titulo);
-      formData.append('duracion', selectedRecipe.duracion);
-      formData.append('porciones', selectedRecipe.porciones);
-      formData.append('paso', selectedRecipe.paso);
-      formData.append('valoracion', selectedRecipe.valoracion);
-  
-      // Convertir los ingredientes a JSON para enviarlos correctamente
-      formData.append('ingredientes', JSON.stringify(selectedRecipe.ingredientes));
-  
-      // Si hay una nueva imagen seleccionada, añadirla
-      if (selectedRecipe.imagen && selectedRecipe.imagen instanceof File) {
-        formData.append('imagen', selectedRecipe.imagen);
-      }
-  
-      // Verificación de contenido de FormData antes de enviarlo
-      for (let pair of formData.entries()) {
-        console.log(`${pair[0]}: ${pair[1]}`);
-      }
-  
-      const updatedRecipe = await updateReceta(selectedRecipe._id, formData);
-      setRecetas(recetas.map((receta) => (receta._id === updatedRecipe._id ? updatedRecipe : receta)));
-      closeEditModal();
-    } catch (error) {
-      console.error('Error al actualizar receta:', error);
-    }
-  };  
+    formData.append('titulo', newRecipe.titulo);
+    formData.append('duracion', newRecipe.duracion);
+    formData.append('porciones', newRecipe.porciones);
+    formData.append('paso', newRecipe.paso);
+    formData.append('valoracion', newRecipe.valoracion);
+    formData.append('ingredientes', JSON.stringify(newRecipe.ingredientes));
 
-  // Función para eliminar una receta
-  const handleDeleteRecipe = async (id) => {
-    try {
-      await deleteReceta(id);
-      setRecetas(recetas.filter((receta) => receta._id !== id));
-    } catch (error) {
-      console.error('Error al eliminar receta:', error);
+    if (newRecipe.imagen) {
+      formData.append('imagen', newRecipe.imagen);
     }
-  };
+
+    await createReceta(formData);
+
+    // Volver a cargar las recetas después de agregar una nueva
+    await fetchRecetasAndIngredientes();
+    setAddRecipeModalVisible(false);
+  } catch (error) {
+    console.error('Error al agregar receta:', error);
+  }
+};
+
+ // Función para actualizar una receta
+const handleUpdateRecipe = async () => {
+  try {
+    const formData = new FormData();
+    formData.append('titulo', selectedRecipe.titulo);
+    formData.append('duracion', selectedRecipe.duracion);
+    formData.append('porciones', selectedRecipe.porciones);
+    formData.append('paso', selectedRecipe.paso);
+    formData.append('valoracion', selectedRecipe.valoracion);
+    formData.append('ingredientes', JSON.stringify(selectedRecipe.ingredientes));
+    if (selectedRecipe.imagen && selectedRecipe.imagen instanceof File) {
+      formData.append('imagen', selectedRecipe.imagen);
+    }
+
+    const updatedRecipe = await updateReceta(selectedRecipe._id, formData);
+    
+    // Reemplaza la receta actualizada en el estado
+    setRecetas((prevRecetas) =>
+      prevRecetas.map((receta) => (receta._id === updatedRecipe._id ? updatedRecipe : receta))
+    );
+    
+    closeEditModal();
+  } catch (error) {
+    console.error('Error al actualizar receta:', error);
+  }
+}; 
+
+ // Función para eliminar una receta
+const handleDeleteRecipe = async (id) => {
+  try {
+    await deleteReceta(id);
+    
+    // Elimina la receta del estado
+    setRecetas((prevRecetas) => prevRecetas.filter((receta) => receta._id !== id));
+  } catch (error) {
+    console.error('Error al eliminar receta:', error);
+  }
+};
 
   // Filtrar ingredientes disponibles según la búsqueda
   const filteredIngredients = availableIngredients.filter((ingredient) =>
