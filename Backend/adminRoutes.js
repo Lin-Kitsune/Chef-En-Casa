@@ -258,7 +258,8 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+    const filename = Date.now() + '-' + file.originalname;
+    cb(null, filename); // Guardamos solo el nombre del archivo
   }
 });
 const upload = multer({ storage });
@@ -375,7 +376,6 @@ router.delete('/categorias/:id', authenticateToken, checkRole('admin'), async (r
     await client.close();
   }
 });
-//=====================================================================================
 //===============================================
 // CRUD Ingredientes
 //===============================================
@@ -524,6 +524,7 @@ router.delete('/ingredientes/:id', authenticateToken, checkRole('admin'), async 
 // ======================= CRUD DE RECETAS =======================
 
 // Crear una receta
+// Crear una receta
 router.post('/recetas', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
   const { titulo, duracion, ingredientes, porciones, paso, valoracion } = req.body;
   const imagen = req.file ? req.file.path : null;
@@ -552,7 +553,7 @@ router.post('/recetas', authenticateToken, checkRole('admin'), upload.single('im
       valoracion: valoracion ? Number(valoracion) : 0,  // Valoración predeterminada en 0 si no se especifica
       porciones: porciones ? Number(porciones) : 0,  // Porciones predeterminadas en 0 si no se especifica
       ingredientes: ingredientesArray,
-      imagen,
+      imagen: imagen || req.body.imagenAnterior,
       paso: paso,
       fechaCreacion: new Date(),
     };
@@ -682,5 +683,4 @@ router.delete('/recetas/:id', authenticateToken, checkRole('admin'), async (req,
   }
 });
 //=====================================================================================
-
 module.exports = router;
