@@ -18,6 +18,7 @@ const fs = require('fs'); // Importar el módulo de sistema de archivos (fs)
 const Almacen = require('./models/Almacen');
 const { crearOActualizarAlmacen } = require('./models/Almacen'); // Importar las funciones actualizadas de Almacen.js
 const { getNoticias } = require('./models/newsService');
+const path = require('path');
 require('dotenv').config();
 
 // Cargar las variables de entorno desde el archivo .env
@@ -1518,6 +1519,16 @@ app.get('/perfil', authenticateToken, async (req, res) => {
 
 // ruta admin -- dejar aca
 const cors = require('cors');
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000', // Cambia al origen de tu frontend
+  credentials: true, // Si necesitas enviar cookies u otros encabezados sensibles
+}));
 const adminRoutes = require('./adminRoutes');
 app.use('/api/admin', adminRoutes);
+// Asegúrate de que Express sirva la carpeta "uploads" de forma pública
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ruta de imagen
+const imageProxy = require('./imageProxy'); 
+// Usa la nueva ruta
+app.use('/api', imageProxy);
