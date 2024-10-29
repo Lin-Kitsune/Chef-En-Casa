@@ -1,3 +1,5 @@
+// BuscadorStyles.js
+
 import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
@@ -12,7 +14,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E7F3E3',
     padding: 10,
     borderRadius: 10,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   searchInput: {
     height: 40,
@@ -26,41 +28,68 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginRight: 10, // Espacio entre el icono y el input
   },
-  grid: {
+  filtersContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  filterInput: {
+    flex: 1,
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    marginRight: 10,
+  },
+  searchButton: {
+    backgroundColor: '#619537',
+    padding: 10,
+    borderRadius: 10,
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   card: {
-    width: '45%',
+    width: '100%',
     backgroundColor: '#f9f9f9',
     borderRadius: 10,
     padding: 15,
     alignItems: 'center',
     marginBottom: 20,
   },
-  cardDesayuno: {
-    backgroundColor: '#F7C784',
-  },
-  cardAlmuerzo: {
-    backgroundColor: '#C7B8EA',
-  },
-  cardCena: {
-    backgroundColor: '#FCE29B',
-  },
-  cardReposteria: {
-    backgroundColor: '#A7E8DB',
+  image: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   cardText: {
     marginTop: 10,
     fontWeight: 'bold',
     fontSize: 16,
     color: '#000', // Asegúrate de que el texto sea legible
+    textAlign: 'center',
   },
-  image: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  loadingText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  prepareButton: { // Estilo del botón "Ver Detalles"
+    backgroundColor: '#619537',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+    width: '100%',
+  },
+  buttonText: {
+    color: '#fff',
+    textAlign: 'center',
   },
 });
 
