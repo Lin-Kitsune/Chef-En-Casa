@@ -5,8 +5,8 @@ import styles from './TendenciaScreenStyle';
 
 const tendenciaData = [
   { id: '1', title: 'Sushi', rating: 4.8, reviews: 50, time: '15 minutos', servings: 2, image: require('../../assets/images/sushi.png'), ingredients: ['Arroz', 'Pescado', 'Alga'] },
-  { id: '2', title: 'Pizza', rating: 4.9, reviews: 120, time: '30 minutos', servings: 4, image: require('../../assets/images/pizza.jpg'), ingredients: ['Harina', 'Tomate', 'Queso'] },
-  { id: '3', title: 'Tacos', rating: 4.7, reviews: 80, time: '10 minutos', servings: 3, image: require('../../assets/images/tacos.jpg'), ingredients: ['Tortillas', 'Carne', 'Cebolla'] },
+  { id: '2', title: 'Smoothie', rating: 4.9, reviews: 45, time: '5 minutos', servings: 4, image: require('../../assets/images/smoothie.jpg'), ingredients: ['Frutilla', 'Arandano'] },
+  { id: '3', title: 'Tacos', rating: 4.7, reviews: 80, time: '30 minutos', servings: 3, image: require('../../assets/images/tacos.jpg'), ingredients: ['Tortillas', 'Carne', 'Cebolla'] },
   // Agregar más recetas
 ];
 

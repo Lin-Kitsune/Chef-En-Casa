@@ -88,11 +88,11 @@ useFocusEffect(
         <View style={{ alignItems: 'center' }}>
           <TouchableOpacity 
             style={styles.topButton}
-            onPress={() => navigation.navigate('Meta')}  // Navegar a la pantalla de "Meta"
+            onPress={() => navigation.navigate('Recomendaciones')}  // Navegar a la nueva pantalla de "Recomendaciones"
           >
-            <Image source={require('../../assets/icons/Grafico.png')} style={styles.buttonIcon} />
+            <Image source={require('../../assets/icons/Recomendaciones.png')} style={styles.buttonIcon} />
           </TouchableOpacity>
-          <Text style={styles.topButtonText}>Meta</Text>
+          <Text style={styles.topButtonText}>Recomendado</Text>
         </View>
 
         <View style={{ alignItems: 'center' }}>

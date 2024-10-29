@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   },
   chartContainer: {
     marginTop: 10,
-    alignItems: 'flex-start',  // Alinea el gráfico a la izquierda
+    alignItems: 'center',  // Alinea el gráfico a la izquierda
     width: '100%',
   },
   titleContainer: {

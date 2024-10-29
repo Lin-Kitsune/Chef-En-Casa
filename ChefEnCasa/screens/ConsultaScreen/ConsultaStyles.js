@@ -19,11 +19,12 @@ const styles = StyleSheet.create({
   },
   consultaHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'center', // Alinea verticalmente los elementos
+    marginBottom: 4, 
   },
   consultaTitulo: {
-    fontSize: 16,
+    flex: 1,              // Permite que el título ocupe todo el espacio disponible
+    fontSize: 16,         // Ajusta el tamaño según prefieras
     fontWeight: 'bold',
     color: '#333',
   },

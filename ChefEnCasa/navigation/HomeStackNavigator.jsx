@@ -5,7 +5,7 @@ import DesayunoScreen from '../screens/DesayunoScreen/DesayunoScreen';
 import RecipeScreen from '../screens/RecipeScreen/RecipeScreen';
 import ShoppingListScreen from '../screens/ShoppingListScreen/ShoppingListScreen';
 import AlmacenScreen from '../screens/AlmacenScreen/AlmacenScreen';
-import MetaScreen from '../screens/MetaScreen/MetaScreen';
+import RecomendacionesScreen from '../screens/RecomendacionesScreen/RecomendacionesScreen';
 import AlmuerzoScreen from '../screens/AlmuerzoScreen/AlmuerzoScreen';
 import CenaScreen from '../screens/CenaScreen/CenaScreen';
 import ReposteriaScreen from '../screens/ReposteriaScreen/ReposteriaScreen';
@@ -106,10 +106,10 @@ const HomeStackNavigator = () => {
         headerTitleAlign: 'center',
       }}/>
       <Stack.Screen
-      name="Meta" 
-      component={MetaScreen}
+      name="Recomendaciones" 
+      component={RecomendacionesScreen}
       options={{
-        title: 'META',
+        title: 'RECOMENDACIONES',
         headerStyle: {
           backgroundColor: '#619537',
         },
