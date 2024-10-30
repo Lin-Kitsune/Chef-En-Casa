@@ -1433,26 +1433,33 @@ app.post('/recetas/guardar', authenticateToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
 
-    // Obtener la receta desde Spoonacular
+    const recetaExistente = await db.collection('recetasGuardadas').findOne({
+      usuarioId: new ObjectId(req.user.id),
+      'receta.recipeId': Number(recipeId)
+    });
+
+    if (recetaExistente) {
+      return res.status(409).json({ message: 'Esta receta ya fue guardada en favoritos' });
+    }
+
     const receta = await obtenerRecetaDeSpoonacular(recipeId);
 
     if (!receta) {
       return res.status(404).json({ message: 'Receta no encontrada' });
     }
 
-    // Traducir el título y los ingredientes
     const tituloTraducido = await translateText(receta.title, 'es');
     const ingredientesTraducidos = await Promise.all(
       receta.extendedIngredients.map(async (ingrediente) => {
         const nombreTraducido = await translateText(ingrediente.name, 'es');
-        return { ...ingrediente, name: nombreTraducido }; // Guardar el ingrediente traducido
+        return { ...ingrediente, name: nombreTraducido };
       })
     );
 
-    // Preparar el objeto receta traducido
     const recetaGuardada = {
       recipeId: receta.id,
       title: tituloTraducido,
+      image: receta.image || 'default_image_url', // Incluye una URL de imagen por defecto
       sourceUrl: receta.sourceUrl,
       ingredients: ingredientesTraducidos,
       instructions: receta.instructions,
@@ -1460,7 +1467,6 @@ app.post('/recetas/guardar', authenticateToken, async (req, res) => {
       servings: receta.servings,
     };
 
-    // Guardar la receta en la colección de recetas guardadas
     await db.collection('recetasGuardadas').insertOne({
       usuarioId: new ObjectId(req.user.id),
       receta: recetaGuardada,
@@ -1476,8 +1482,8 @@ app.post('/recetas/guardar', authenticateToken, async (req, res) => {
 //VER RECETAS GUARDADAS 
 // Ruta para obtener las recetas guardadas del usuario (Paginacion para mejorar rendimiento)
 app.get('/recetas/guardadas', authenticateToken, async (req, res) => {
-  const page = parseInt(req.query.page) || 1;  // Número de página (por defecto 1)
-  const limit = parseInt(req.query.limit) || 10;  // Número de recetas por página (por defecto 10)
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
 
   try {
     const db = await connectToDatabase();
@@ -1491,6 +1497,9 @@ app.get('/recetas/guardadas', authenticateToken, async (req, res) => {
     if (!recetasGuardadas || recetasGuardadas.length === 0) {
       return res.status(404).json({ message: 'No tienes recetas guardadas' });
     }
+
+    // Mostrar en consola las recetas obtenidas para verificar
+    console.log("Recetas guardadas obtenidas:", recetasGuardadas);
 
     res.status(200).json({ recetas: recetasGuardadas });
   } catch (error) {
