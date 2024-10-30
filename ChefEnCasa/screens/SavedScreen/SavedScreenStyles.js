@@ -33,8 +33,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   recipeImage: {
-    width: 90,  // Aumenta el tamaño de la imagen
-    height: 90, // Aumenta el tamaño de la imagen
+    width: 90,
+    height: 90,
     borderRadius: 10,
   },
   recipeInfo: {
@@ -66,24 +66,27 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    alignItems: 'center',  // Alinea verticalmente los elementos
-    marginTop: 10,         // Añade espacio arriba del contenedor
+    alignItems: 'center',
+    marginTop: 10,
   },
   recipeButton: {
-    backgroundColor: '#619537',
-    paddingVertical: 5,
+    backgroundColor: '#619537',  // Asegúrate de usar un color que no parezca deshabilitado
+    paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 5,
-    marginRight: 10,       // Añade espacio entre el botón y la papelera
+    alignItems: 'center',
   },
   recipeButtonText: {
-    color: '#fff',
+    color: '#fff',  // Asegúrate de que el texto sea visible sobre el color de fondo
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   deleteButton: {
-    paddingHorizontal: 10, // Ajuste de padding para un mejor tamaño
+    paddingHorizontal: 10,
   },
+  shareButton: {
+    paddingHorizontal: 10, // Ajuste de padding para un tamaño similar al botón de borrar
+  },
+  
 });
 
 export default styles;
