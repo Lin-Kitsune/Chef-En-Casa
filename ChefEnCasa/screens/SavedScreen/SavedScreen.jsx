@@ -1,83 +1,106 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Image, FlatList, Alert, ActivityIndicator, Linking } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import styles from './SavedScreenStyles';  // Asegúrate de tener el archivo de estilos correspondiente
+import styles from './SavedScreenStyles';
+import { getSavedRecipes, deleteSavedRecipe } from '../../services/recipes';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { shareRecipe } from '../../services/share';
 
-const savedRecipes = [
-  {
-    id: '1',
-    title: 'Bol con Fruta',
-    rating: 4.5,
-    reviews: 12,
-    time: '5 minutos',
-    servings: 2,
-    image: require('../../assets/images/bol-fruta.jpg'),
-  },
-  {
-    id: '2',
-    title: 'Smoothie Bowl',
-    rating: 5,
-    reviews: 9,
-    time: '5 minutos',
-    servings: 1,
-    image: require('../../assets/images/smoothie-bowl.jpg'),
-  },
-  {
-    id: '3',
-    title: 'Tostadas de Tomate y Mozzarella',
-    rating: 4.5,
-    reviews: 15,
-    time: '5 minutos',
-    servings: 2,
-    image: require('../../assets/images/tostadas-tomate.jpg'),
-  },
-  {
-    id: '4',
-    title: 'Omelet',
-    rating: 5,
-    reviews: 7,
-    time: '5 minutos',
-    servings: 1,
-    image: require('../../assets/images/omelet.jpg'),
-  },
-];
+const SavedRecipesScreen = () => {
+  const [savedRecipes, setSavedRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
 
-const SavedRecipesScreen = ({ navigation }) => {
+  // Función para cargar recetas guardadas
+  const fetchSavedRecipes = async () => {
+    try {
+      setLoading(true);
+      const data = await getSavedRecipes();
+      setSavedRecipes(data.recetas);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo cargar las recetas guardadas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para eliminar una receta guardada
+  const handleDeleteRecipe = async (recipeId) => {
+    try {
+      await deleteSavedRecipe(recipeId);
+      Alert.alert('Éxito', 'La receta ha sido eliminada de tus guardados');
+      fetchSavedRecipes();  // Recargar recetas después de eliminar una
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo eliminar la receta');
+    }
+  };
+
+  // Función para compartir la receta
+  const handleShareRecipe = async (recipeId) => {
+    try {
+      const link = await shareRecipe(recipeId);  // Llamar a la función de compartir en el servicio
+      Linking.openURL(link);  // Abrir WhatsApp o el navegador con el enlace generado
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo generar el enlace para compartir la receta');
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchSavedRecipes();
+    }, [])
+  );
+
   const renderRecipeItem = ({ item }) => (
-  <View style={styles.recipeContainer}>
-    <Image source={item.image} style={styles.recipeImage} />
-    <View style={styles.recipeInfo}>
-      <Text style={styles.recipeTitle}>{item.title}</Text>
-      <View style={styles.recipeDetails}>
-        <Text style={styles.recipeRating}>
-          ⭐ {item.rating} ({item.reviews} reseñas)
-        </Text>
-        <Text style={styles.recipeServings}>
-          <Icon name="cutlery" size={14} color="#888" /> {item.servings}
-        </Text>
-        <Text style={styles.recipeTime}>
-          ⏱ {item.time}
-        </Text>
-      </View>
-      {/* Añadimos el botón de comenzar y papelera en un solo contenedor */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.recipeButton}>
-          <Text style={styles.recipeButtonText}>Comenzar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteButton}>
-          <Icon name="trash" size={20} color="#619537" />
-        </TouchableOpacity>
+    <View style={styles.recipeContainer}>
+      <Image source={{ uri: item.receta.image || 'default_image_url' }} style={styles.recipeImage} />
+      <View style={styles.recipeInfo}>
+        <Text style={styles.recipeTitle}>{item.receta.title}</Text>
+        <View style={styles.recipeDetails}>
+          <Text style={styles.recipeServings}>
+            🍽 {item.receta.servings || 'N/A'} personas
+          </Text>
+          <Text style={styles.recipeTime}>
+            ⏱ {item.receta.readyInMinutes || 'N/A'} minutos
+          </Text>
+        </View>
+        <View style={styles.buttonContainer}>
+
+          <TouchableOpacity 
+            style={styles.recipeButton} 
+            onPress={() => {
+              console.log("Navigating to RecipeDetail with recipeId:", item.receta.recipeId);
+              navigation.navigate('RecipeDetail', { recipeId: item.receta.recipeId });
+            }}
+          >
+            <Text style={styles.buttonText}>Comenzar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.shareButton} onPress={() => handleShareRecipe(item.receta.recipeId)}>
+            <Icon name="share-alt" size={20} color="#619537" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteRecipe(item.receta.recipeId)}>
+            <Icon name="trash" size={20} color="#619537" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
-  </View>
-);
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#619537" />
+        <Text>Cargando recetas guardadas...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <FlatList
         data={savedRecipes}
         renderItem={renderRecipeItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.receta.recipeId.toString()}
         style={styles.recipeList}
       />
     </View>
