@@ -4,6 +4,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    paddingBottom: 60, // Espacio adicional para evitar que los elementos se superpongan con la barra inferior
     backgroundColor: '#f5f5f5',
   },
   buttonsContainer: {
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    paddingVertical: 10, // Espaciado vertical entre los elementos
     borderBottomColor: '#ccc',
     borderBottomWidth: 1,
   },
@@ -168,6 +169,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     color: 'white',
+  },
+  markAllButton: {
+    backgroundColor: '#3b82f6',  // Puedes elegir el color que desees
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    marginHorizontal: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  centeredButtonContainer: {
+    alignItems: 'center',
+    marginTop: 10, // Ajusta el espacio superior según prefieras
+    paddingBottom: 20,
   },
 });
 
