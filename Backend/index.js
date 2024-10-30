@@ -1049,7 +1049,7 @@ app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => 
   }
 });
 
-//VER LISTA DE COMPRAS
+// VER LISTA DE COMPRAS
 app.get('/lista-de-compras', authenticateToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -1057,10 +1057,11 @@ app.get('/lista-de-compras', authenticateToken, async (req, res) => {
     const listaDeCompras = await db.collection('listasDeCompras').findOne({ usuarioId, completada: false });
 
     if (!listaDeCompras) {
-      return res.status(404).json({ message: 'No tienes lista de compras' });
+      // Cambiar el código de estado a 200 y enviar una señal específica para el frontend
+      return res.status(200).json({ message: 'No tienes ningún ingrediente en tu lista de compras', listaVacia: true });
     }
 
-    res.status(200).json(listaDeCompras);
+    res.status(200).json({ ...listaDeCompras, listaVacia: false });
   } catch (error) {
     res.status(500).json({ error: `Error al obtener la lista de compras: ${error.message}` });
   }
@@ -1166,27 +1167,52 @@ app.put('/lista-de-compras/transferir-al-almacen', authenticateToken, async (req
     const ingredientesComprados = listaDeCompras.ingredientes.filter(ingrediente => ingrediente.comprado);
 
     for (const ingrediente of ingredientesComprados) {
+      // Obtener el nombre e imagen del ingrediente desde la colección `ingredientes`
+      const ingredienteDb = await db.collection('ingredientes').findOne({
+        $or: [
+          { nombreOriginal: ingrediente.nombre },
+          { nombreEspanol: ingrediente.nombre }
+        ]
+      });
+
+      const nombreEspanol = ingredienteDb?.nombreEspanol || ingrediente.nombre;
+      const imagen = ingredienteDb?.image || ingrediente.img || ''; // Priorizar imagen de la base de datos
+
       const ingredienteEnAlmacen = await db.collection('almacen').findOne({
         usuarioId,
         'ingredientes.nombre': ingrediente.nombre
       });
 
       if (ingredienteEnAlmacen) {
+        // Si el ingrediente ya está en el almacén, solo actualizar la cantidad
         await db.collection('almacen').updateOne(
           { usuarioId, 'ingredientes.nombre': ingrediente.nombre },
           { $inc: { 'ingredientes.$.cantidad': ingrediente.cantidad } }
         );
       } else {
+        // Si el ingrediente no está en el almacén, agregarlo con todos los detalles
         await db.collection('almacen').updateOne(
           { usuarioId },
-          { $push: { ingredientes: { nombre: ingrediente.nombre, cantidad: ingrediente.cantidad, perecedero: true } } }
+          {
+            $push: {
+              ingredientes: {
+                nombre: ingrediente.nombre,
+                nombreEspanol,
+                cantidad: ingrediente.cantidad,
+                perecedero: true,
+                img: imagen // Asegura que se pasa el campo correcto
+              }
+            }
+          }
         );
       }
     }
 
+    // Eliminar la lista de compras una vez que se han transferido los ingredientes
     await db.collection('listasDeCompras').deleteOne({ usuarioId });
     res.status(200).json({ message: 'Ingredientes transferidos al almacén y lista de compras eliminada' });
   } catch (error) {
+    console.error('Error al transferir los ingredientes al almacén:', error.message);
     res.status(500).json({ message: 'Error al transferir los ingredientes al almacén', error: error.message });
   }
 });
