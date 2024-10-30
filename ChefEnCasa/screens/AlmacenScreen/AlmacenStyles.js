@@ -4,6 +4,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
+    paddingBottom: 100,
     backgroundColor: '#f1f1f1',
   },
   buttonsContainer: {
