@@ -53,6 +53,22 @@ export const saveRecipe = async (recipeId) => {
   }
 };
 
+// Obtener recetas guardadas
+export const getSavedRecipes = async () => {
+  try {
+    const token = await getToken();
+    const response = await axios.get(`${API_URL}/recetas/guardadas`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener recetas guardadas:', error.message);
+    throw new Error('Error al obtener las recetas guardadas');
+  }
+};
+
 // Eliminar receta guardada
 export const deleteSavedRecipe = async (recipeId) => {
   try {
@@ -61,9 +77,7 @@ export const deleteSavedRecipe = async (recipeId) => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      data: {
-        recipeId,
-      },
+      data: { recipeId },
     });
     return response.data;
   } catch (error) {
