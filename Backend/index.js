@@ -19,6 +19,8 @@ const Almacen = require('./models/Almacen');
 const { crearOActualizarAlmacen } = require('./models/Almacen'); // Importar las funciones actualizadas de Almacen.js
 const { getNoticias } = require('./models/newsService');
 const path = require('path');
+const { crearNotificacion, obtenerNotificaciones } = require('./models/Notificaciones');
+const cron = require('node-cron');
 require('dotenv').config();
 
 // Cargar las variables de entorno desde el archivo .env
@@ -1441,6 +1443,24 @@ app.delete('/notificaciones/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error al eliminar notificación:', error.message);
     res.status(500).json({ error: 'Error al eliminar notificación' });
+  }
+});
+
+// Tarea programada para enviar recordatorio mensual de altura y peso
+cron.schedule('0 0 1 * *', async () => {
+  console.log("Ejecutando tarea programada de recordatorio de altura y peso.");
+  try {
+    const db = await connectToDatabase();
+    const usuarios = await db.collection('usuarios').find({ role: 'user' }).toArray();
+
+    for (const usuario of usuarios) {
+      const mensaje = "Recuerda actualizar tu altura y peso este mes.";
+      await crearNotificacion(usuario._id, mensaje, 'recordatorioMensual');
+    }
+
+    console.log("Notificaciones mensuales enviadas.");
+  } catch (error) {
+    console.error("Error al enviar notificaciones mensuales:", error);
   }
 });
 
