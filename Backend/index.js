@@ -1376,7 +1376,8 @@ app.get('/noticias', async (req, res) => {
 //============================================NOTIFICACIONES=============================================
 //=======================================================================================================
 // Se envia una notificacion al usuario con los nombres de los ingredientes que se han agotado en su almacen 
-app.get('/notificaciones', authenticateToken, async (req, res) => {
+//============================================GENERAR NOTIFICACIONES=================================
+app.post('/notificaciones/generar', authenticateToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
     const usuarioId = new ObjectId(req.user.id);
@@ -1387,13 +1388,59 @@ app.get('/notificaciones', authenticateToken, async (req, res) => {
       .map(ingrediente => ingrediente.nombre);  // Solo nombres
 
     if (ingredientesAgotados.length > 0) {
-      return res.status(200).json({ message: 'Tienes ingredientes agotados', ingredientesAgotados });
+      // Guarda la notificación en la colección de notificaciones
+      await db.collection('notificaciones').insertOne({
+        usuarioId,
+        ingredientes: ingredientesAgotados,
+        fecha: new Date(),
+        leido: false,
+        mensaje: `Tienes ingredientes agotados: ${ingredientesAgotados.join(', ')}`,
+      });
+      return res.status(200).json({ message: 'Notificación generada por ingredientes agotados' });
     } else {
       return res.status(200).json({ message: 'No tienes ingredientes agotados' });
     }
   } catch (error) {
-    console.error('Error al obtener notificaciones:', error.message);
-    res.status(500).json({ error: 'Error al obtener notificaciones' });
+    console.error('Error al generar notificación:', error.message);
+    res.status(500).json({ error: 'Error al generar notificación' });
+  }
+});
+
+// Ruta para obtener las notificaciones del usuario
+app.get('/notificaciones', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const usuarioId = new ObjectId(req.user.id);
+
+    // Obtener las notificaciones de la colección 'notificaciones' para el usuario autenticado
+    const notificaciones = await db.collection('notificaciones')
+      .find({ usuarioId })
+      .sort({ fecha: -1 }) // Ordenar por fecha, las más recientes primero
+      .toArray();
+
+    res.status(200).json({ notificaciones });
+  } catch (error) {
+    console.error('Error al obtener las notificaciones:', error.message);
+    res.status(500).json({ error: 'Error al obtener las notificaciones' });
+  }
+});
+
+
+//=====ELIMINAR NOTIFICACIÓN
+app.delete('/notificaciones/:id', authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const { id } = req.params;
+    const result = await db.collection('notificaciones').deleteOne({ _id: new ObjectId(id) });
+    
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Notificación no encontrada' });
+    }
+
+    res.status(200).json({ message: 'Notificación eliminada con éxito' });
+  } catch (error) {
+    console.error('Error al eliminar notificación:', error.message);
+    res.status(500).json({ error: 'Error al eliminar notificación' });
   }
 });
 
