@@ -129,6 +129,22 @@ const traducirIngredienteAIngles = (nombre) => {
     }
   };
 
+  // Llamada para generar notificaciones de ingredientes agotados
+  const generarNotificaciones = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      await axios.post('http://10.0.2.2:4000/notificaciones/generar', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (error) {
+      console.error('Error al generar notificación:', error.message);
+    }
+  };
+
+  useEffect(() => {
+    generarNotificaciones(); // Llama a esta función al montar la pantalla
+  }, []);
+
   const openIngredientModal = (category) => {
     setSearchTerm('');
     setSelectedCategory(category);
