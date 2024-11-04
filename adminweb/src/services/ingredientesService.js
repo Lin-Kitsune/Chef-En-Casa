@@ -38,6 +38,15 @@ export const createIngrediente = async (ingredienteData) => {
           'Content-Type': 'multipart/form-data',
         },
       });
+       // Solo extrae la notificación desde la respuesta del backend
+      const { notificacion } = response.data;
+
+      // Manejo de la notificación
+      if (notificacion) {
+        console.log("Notificación recibida:", notificacion.mensaje);  // Muestra en consola la notificación
+        alert(`Notificación: ${notificacion.mensaje}`);  // O muestra una alerta en la interfaz
+      }
+    
       return response.data;
     } catch (error) {
       console.error('Error al agregar ingrediente:', error.response || error.message);

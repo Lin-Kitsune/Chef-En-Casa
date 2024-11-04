@@ -27,6 +27,15 @@ export const createReceta = async (recetaData) => {
         'Content-Type': 'multipart/form-data', // Asegúrate de tener este encabezado
       },
     });
+    // Extraemos la notificación desde la respuesta del backend
+    const { notificacion } = response.data;
+
+    // Manejo de la notificación
+    if (notificacion) {
+      console.log("Notificación recibida:", notificacion.mensaje);  // Muestra en consola la notificación
+      alert(`Notificación: ${notificacion.mensaje}`);  // O muestra una alerta en la interfaz
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Error al crear receta:', error.response?.data || error.message);
