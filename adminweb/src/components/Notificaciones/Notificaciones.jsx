@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { getAllNotifications, deleteNotification } from '../../services/notificationService';
+import {  getNotificaciones } from '../../services/notificationService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faSearch, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import CrearNotificacion from './CrearNotificacion'; // Importar el componente de creación
 
 const Notificaciones = () => {
@@ -13,7 +13,7 @@ const Notificaciones = () => {
   // Obtener lista de notificaciones al cargar
   useEffect(() => {
     const fetchNotificaciones = async () => {
-      const notificationList = await getAllNotifications();
+      const notificationList = await getNotificaciones();
       setNotificaciones(notificationList);
       setLoading(false);
     };
@@ -21,16 +21,16 @@ const Notificaciones = () => {
     fetchNotificaciones();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar esta notificación?')) {
-      await deleteNotification(id);
-      setNotificaciones(notificaciones.filter(noti => noti._id !== id));
-    }
-  };
+  // const handleDelete = async (id) => {
+  //   if (window.confirm('¿Estás seguro de eliminar esta notificación?')) {
+  //     await deleteNotification(id);
+  //     setNotificaciones(notificaciones.filter(noti => noti._id !== id));
+  //   }
+  // };
 
-  const openAddNotificationModal = () => {
-    setAddNotificationModalVisible(true);
-  };
+  // const openAddNotificationModal = () => {
+  //   setAddNotificationModalVisible(true);
+  // };
 
   const closeAddNotificationModal = () => {
     setAddNotificationModalVisible(false);
@@ -42,10 +42,19 @@ const Notificaciones = () => {
     closeAddNotificationModal();
   };
 
-  // Filtrar las notificaciones según la búsqueda
-  const filteredNotificaciones = notificaciones.filter(noti =>
-    noti.titulo && noti.titulo.toLowerCase().includes(searchQuery.toLowerCase())
+// Filtrar las notificaciones según la búsqueda
+const filteredNotificaciones = notificaciones.filter((noti) => {
+  const tipo = noti.tipo ? noti.tipo.toLowerCase() : '';
+  const mensaje = noti.mensaje ? noti.mensaje.toLowerCase() : '';
+  const fecha = noti.fecha ? new Date(noti.fecha).toLocaleDateString().toLowerCase() : '';
+
+  return (
+    tipo.includes(searchQuery.toLowerCase()) ||
+    mensaje.includes(searchQuery.toLowerCase()) ||
+    fecha.includes(searchQuery.toLowerCase())
   );
+});
+
 
   const totalNotificaciones = notificaciones.length;
 
@@ -73,25 +82,25 @@ const Notificaciones = () => {
 
         {/* Botón para abrir el modal de agregar notificación */}
         <button
-          className="bg-verde-chef text-white py-2 px-6 rounded-full font-bold hover:bg-green-600 transition duration-300 flex items-center space-x-2"
-          onClick={openAddNotificationModal}
+          className="text-white py-2 px-6 rounded-full font-bold"
+          // onClick={openAddNotificationModal}
         >
-          <FontAwesomeIcon icon={faPlus} />
-          <span>Agregar Notificación</span>
+          {/* <FontAwesomeIcon icon={faPlus} />
+          <span>Agregar Notificación</span> */}
         </button>
       </div>
 
       {/* Grid de notificaciones */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredNotificaciones.map((noti) => (
-          <div key={noti._id} className="bg-white rounded-lg shadow-md p-4 flex flex-col h-full"> {/* Usar flex para la tarjeta */}
-            <div className="flex-grow"> {/* Para hacer que el contenido crezca */}
+          <div key={noti._id} className="bg-white rounded-lg shadow-md p-4 flex flex-col h-full">Usar flex para la tarjeta
+            <div className="flex-grow"> Para hacer que el contenido crezca
               <p className="text-lg font-semibold">Título: {noti.titulo}</p>
               <p className="text-gray-600">Mensaje: {noti.mensaje}</p>
               <p className="text-sm text-gray-400">Fecha: {noti.fecha}</p>
               <p className="text-sm text-gray-400">Destinatario: {noti.destinatario}</p>
             </div>
-            {/* Botón de eliminar colocado al final */}
+            Botón de eliminar colocado al final
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => handleDelete(noti._id)}
@@ -102,7 +111,7 @@ const Notificaciones = () => {
             </div>
           </div>
         ))}
-      </div>
+      </div> */}
 
       {/* Modal para agregar notificación */}
       {addNotificationModalVisible && (
@@ -110,6 +119,24 @@ const Notificaciones = () => {
           <CrearNotificacion onClose={closeAddNotificationModal} onCreate={handleCreateNotification} />
         </div>
       )}
+      {/* Historial de notificaciones */}
+      <div className="mt-10">
+        <h2 className="text-xl font-bold mb-4">Historial de Notificaciones</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredNotificaciones.map((noti) => (
+            <div 
+              key={noti._id} 
+              className="bg-white rounded-lg shadow-md p-4 flex flex-col h-full"
+            >
+              <div className="flex-grow">
+                <p className="text-lg font-semibold">Título: {noti.tipo}</p>
+                <p className="text-gray-600">Mensaje: {noti.mensaje}</p>
+                <p className="text-sm text-gray-400">Fecha: {new Date(noti.fecha).toLocaleDateString()}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
