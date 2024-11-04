@@ -724,4 +724,22 @@ router.delete('/recetas/:id', authenticateToken, checkRole('admin'), async (req,
   }
 });
 //=====================================================================================
+// Endpoint para obtener todas las notificaciones
+router.get('/notificaciones', authenticateToken, async (req, res) => {
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const notificacionesCollection = db.collection('notificaciones');
+
+    // Obtiene todas las notificaciones
+    const notificaciones = await notificacionesCollection.find().sort({ fecha: -1 }).toArray();
+    res.status(200).json(notificaciones);
+  } catch (error) {
+    console.error('Error al obtener notificaciones:', error);
+    res.status(500).json({ message: 'Error al obtener notificaciones' });
+  } finally {
+    await client.close();
+  }
+});
+
 module.exports = router;
