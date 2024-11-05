@@ -1051,7 +1051,7 @@ app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => 
   }
 });
 
-// VER LISTA DE COMPRAS
+//VER LISTA DE COMPRAS
 app.get('/lista-de-compras', authenticateToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -1059,11 +1059,10 @@ app.get('/lista-de-compras', authenticateToken, async (req, res) => {
     const listaDeCompras = await db.collection('listasDeCompras').findOne({ usuarioId, completada: false });
 
     if (!listaDeCompras) {
-      // Cambiar el código de estado a 200 y enviar una señal específica para el frontend
-      return res.status(200).json({ message: 'No tienes ningún ingrediente en tu lista de compras', listaVacia: true });
+      return res.status(404).json({ message: 'No tienes lista de compras' });
     }
 
-    res.status(200).json({ ...listaDeCompras, listaVacia: false });
+    res.status(200).json(listaDeCompras);
   } catch (error) {
     res.status(500).json({ error: `Error al obtener la lista de compras: ${error.message}` });
   }
@@ -1169,52 +1168,27 @@ app.put('/lista-de-compras/transferir-al-almacen', authenticateToken, async (req
     const ingredientesComprados = listaDeCompras.ingredientes.filter(ingrediente => ingrediente.comprado);
 
     for (const ingrediente of ingredientesComprados) {
-      // Obtener el nombre e imagen del ingrediente desde la colección `ingredientes`
-      const ingredienteDb = await db.collection('ingredientes').findOne({
-        $or: [
-          { nombreOriginal: ingrediente.nombre },
-          { nombreEspanol: ingrediente.nombre }
-        ]
-      });
-
-      const nombreEspanol = ingredienteDb?.nombreEspanol || ingrediente.nombre;
-      const imagen = ingredienteDb?.image || ingrediente.img || ''; // Priorizar imagen de la base de datos
-
       const ingredienteEnAlmacen = await db.collection('almacen').findOne({
         usuarioId,
         'ingredientes.nombre': ingrediente.nombre
       });
 
       if (ingredienteEnAlmacen) {
-        // Si el ingrediente ya está en el almacén, solo actualizar la cantidad
         await db.collection('almacen').updateOne(
           { usuarioId, 'ingredientes.nombre': ingrediente.nombre },
           { $inc: { 'ingredientes.$.cantidad': ingrediente.cantidad } }
         );
       } else {
-        // Si el ingrediente no está en el almacén, agregarlo con todos los detalles
         await db.collection('almacen').updateOne(
           { usuarioId },
-          {
-            $push: {
-              ingredientes: {
-                nombre: ingrediente.nombre,
-                nombreEspanol,
-                cantidad: ingrediente.cantidad,
-                perecedero: true,
-                img: imagen // Asegura que se pasa el campo correcto
-              }
-            }
-          }
+          { $push: { ingredientes: { nombre: ingrediente.nombre, cantidad: ingrediente.cantidad, perecedero: true } } }
         );
       }
     }
 
-    // Eliminar la lista de compras una vez que se han transferido los ingredientes
     await db.collection('listasDeCompras').deleteOne({ usuarioId });
     res.status(200).json({ message: 'Ingredientes transferidos al almacén y lista de compras eliminada' });
   } catch (error) {
-    console.error('Error al transferir los ingredientes al almacén:', error.message);
     res.status(500).json({ message: 'Error al transferir los ingredientes al almacén', error: error.message });
   }
 });
@@ -1378,8 +1352,7 @@ app.get('/noticias', async (req, res) => {
 //============================================NOTIFICACIONES=============================================
 //=======================================================================================================
 // Se envia una notificacion al usuario con los nombres de los ingredientes que se han agotado en su almacen 
-//============================================GENERAR NOTIFICACIONES=================================
-app.post('/notificaciones/generar', authenticateToken, async (req, res) => {
+app.get('/notificaciones', authenticateToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
     const usuarioId = new ObjectId(req.user.id);
@@ -1390,59 +1363,13 @@ app.post('/notificaciones/generar', authenticateToken, async (req, res) => {
       .map(ingrediente => ingrediente.nombre);  // Solo nombres
 
     if (ingredientesAgotados.length > 0) {
-      // Guarda la notificación en la colección de notificaciones
-      await db.collection('notificaciones').insertOne({
-        usuarioId,
-        ingredientes: ingredientesAgotados,
-        fecha: new Date(),
-        leido: false,
-        mensaje: `Tienes ingredientes agotados: ${ingredientesAgotados.join(', ')}`,
-      });
-      return res.status(200).json({ message: 'Notificación generada por ingredientes agotados' });
+      return res.status(200).json({ message: 'Tienes ingredientes agotados', ingredientesAgotados });
     } else {
       return res.status(200).json({ message: 'No tienes ingredientes agotados' });
     }
   } catch (error) {
-    console.error('Error al generar notificación:', error.message);
-    res.status(500).json({ error: 'Error al generar notificación' });
-  }
-});
-
-// Ruta para obtener las notificaciones del usuario
-app.get('/notificaciones', authenticateToken, async (req, res) => {
-  try {
-    const db = await connectToDatabase();
-    const usuarioId = new ObjectId(req.user.id);
-
-    // Obtener las notificaciones de la colección 'notificaciones' para el usuario autenticado
-    const notificaciones = await db.collection('notificaciones')
-      .find({ usuarioId })
-      .sort({ fecha: -1 }) // Ordenar por fecha, las más recientes primero
-      .toArray();
-
-    res.status(200).json({ notificaciones });
-  } catch (error) {
-    console.error('Error al obtener las notificaciones:', error.message);
-    res.status(500).json({ error: 'Error al obtener las notificaciones' });
-  }
-});
-
-
-//=====ELIMINAR NOTIFICACIÓN
-app.delete('/notificaciones/:id', authenticateToken, async (req, res) => {
-  try {
-    const db = await connectToDatabase();
-    const { id } = req.params;
-    const result = await db.collection('notificaciones').deleteOne({ _id: new ObjectId(id) });
-    
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ message: 'Notificación no encontrada' });
-    }
-
-    res.status(200).json({ message: 'Notificación eliminada con éxito' });
-  } catch (error) {
-    console.error('Error al eliminar notificación:', error.message);
-    res.status(500).json({ error: 'Error al eliminar notificación' });
+    console.error('Error al obtener notificaciones:', error.message);
+    res.status(500).json({ error: 'Error al obtener notificaciones' });
   }
 });
 
@@ -1500,33 +1427,26 @@ app.post('/recetas/guardar', authenticateToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
 
-    const recetaExistente = await db.collection('recetasGuardadas').findOne({
-      usuarioId: new ObjectId(req.user.id),
-      'receta.recipeId': Number(recipeId)
-    });
-
-    if (recetaExistente) {
-      return res.status(409).json({ message: 'Esta receta ya fue guardada en favoritos' });
-    }
-
+    // Obtener la receta desde Spoonacular
     const receta = await obtenerRecetaDeSpoonacular(recipeId);
 
     if (!receta) {
       return res.status(404).json({ message: 'Receta no encontrada' });
     }
 
+    // Traducir el título y los ingredientes
     const tituloTraducido = await translateText(receta.title, 'es');
     const ingredientesTraducidos = await Promise.all(
       receta.extendedIngredients.map(async (ingrediente) => {
         const nombreTraducido = await translateText(ingrediente.name, 'es');
-        return { ...ingrediente, name: nombreTraducido };
+        return { ...ingrediente, name: nombreTraducido }; // Guardar el ingrediente traducido
       })
     );
 
+    // Preparar el objeto receta traducido
     const recetaGuardada = {
       recipeId: receta.id,
       title: tituloTraducido,
-      image: receta.image || 'default_image_url', // Incluye una URL de imagen por defecto
       sourceUrl: receta.sourceUrl,
       ingredients: ingredientesTraducidos,
       instructions: receta.instructions,
@@ -1534,6 +1454,7 @@ app.post('/recetas/guardar', authenticateToken, async (req, res) => {
       servings: receta.servings,
     };
 
+    // Guardar la receta en la colección de recetas guardadas
     await db.collection('recetasGuardadas').insertOne({
       usuarioId: new ObjectId(req.user.id),
       receta: recetaGuardada,
@@ -1549,8 +1470,8 @@ app.post('/recetas/guardar', authenticateToken, async (req, res) => {
 //VER RECETAS GUARDADAS 
 // Ruta para obtener las recetas guardadas del usuario (Paginacion para mejorar rendimiento)
 app.get('/recetas/guardadas', authenticateToken, async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
+  const page = parseInt(req.query.page) || 1;  // Número de página (por defecto 1)
+  const limit = parseInt(req.query.limit) || 10;  // Número de recetas por página (por defecto 10)
 
   try {
     const db = await connectToDatabase();
@@ -1564,9 +1485,6 @@ app.get('/recetas/guardadas', authenticateToken, async (req, res) => {
     if (!recetasGuardadas || recetasGuardadas.length === 0) {
       return res.status(404).json({ message: 'No tienes recetas guardadas' });
     }
-
-    // Mostrar en consola las recetas obtenidas para verificar
-    console.log("Recetas guardadas obtenidas:", recetasGuardadas);
 
     res.status(200).json({ recetas: recetasGuardadas });
   } catch (error) {
