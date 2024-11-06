@@ -333,49 +333,72 @@ function checkRole(role) {
 //Ahora busca todas las recetas sin filtro "ingrediente", apareceran todas las recetas a menos que el usuario filtre
 //por ingrediente u otro filtro
 app.get('/api/recetas', authenticateToken, async (req, res) => {
-  let query = req.query.q || '';  // Permitir que 'q' sea opcional, si no hay, no se filtra por un término específico
-
-  // Convertir el término de búsqueda al español (si se provee)
+  let query = req.query.q || '';
   if (query) {
-    query = convertirIngredienteAEspanol(query);
+    query = await convertirIngredienteAEspanol(query); // Asegúrate de que el valor esté listo
   }
-
-  const time = req.query.time || null;  // Tiempo de preparación (opcional)
-  const maxServings = req.query.maxServings || null;  // Máximo de porciones (opcional)
-  const diet = req.query.diet || null;   // Dieta (opcional)
+  const time = req.query.time || null;
+  const maxServings = req.query.maxServings || null;
+  const diet = req.query.diet || null;
 
   try {
     const usuario = await usersCollection.findOne({ _id: new ObjectId(req.user.id) });
-
     const params = {
       apiKey: SPOONACULAR_API_KEY,
-      query: query || null,  // Si no hay query, el campo query será null y no se filtrará por palabra clave
-      number: 10,  // Número de recetas a devolver (puedes ajustar este número según necesidad)
-      diet: usuario.diet || diet || null,  // Priorizar la dieta del perfil del usuario
-      excludeIngredients: usuario.allergies ? usuario.allergies.join(',') : null,  // Excluir ingredientes por alergias del usuario
+      query: query || null,
+      number: 10,
+      diet: usuario.diet || diet || null,
+      excludeIngredients: usuario.allergies ? usuario.allergies.join(',') : null,
     };
 
-    // Añadir el filtro de tiempo de preparación si está presente
     if (time) params.maxReadyTime = time;
-
-    // Añadir el filtro de porciones si está presente
     if (maxServings) params.maxServings = maxServings;
 
-    // Llamada a la API de Spoonacular
     const response = await axios.get(`${SPOONACULAR_API_BASE_URL}/recipes/complexSearch`, { params });
+    console.log("Parámetros enviados a Spoonacular:", params);
+    console.log("Respuesta completa de Spoonacular:", response.data);
 
-    // Traducir títulos al español
-    const recetas = response.data.results;
+    if (response.status === 402) {
+      return res.status(402).json({ error: 'Límite de solicitudes a la API de Spoonacular alcanzado. Intente más tarde.' });
+    }
+
+    const recetas = response.data.results || [];
+
+    if (recetas.length === 0) {
+      return res.status(200).json({ message: "No se encontraron recetas.", results: [] });
+    }
+
     const recetasTraducidas = await Promise.all(recetas.map(async receta => {
-      const tituloTraducido = await translateText(receta.title, 'es');
-      return { ...receta, title: tituloTraducido };
+      try {
+        const tituloTraducido = await translateText(receta.title, 'es');
+        let instruccionesTraducidas = receta.instructions;
+        if (receta.instructions) {
+          try {
+            instruccionesTraducidas = await translateText(receta.instructions, 'es');
+          } catch (error) {
+            console.error(`Error al traducir instrucciones de la receta ${receta.title}:`, error);
+          }
+        }
+
+        return { 
+          ...receta, 
+          title: tituloTraducido,
+          instructions: instruccionesTraducidas || 'No hay instrucciones disponibles en español'
+        };
+      } catch (error) {
+        console.error(`Error al traducir título de la receta: ${receta.title}`, error);
+        return receta;
+      }
     }));
 
     res.json({ results: recetasTraducidas });
-
   } catch (error) {
     console.error('Error al buscar o traducir recetas:', error.message);
-    res.status(500).json({ error: 'Error al buscar o traducir recetas' });
+    if (error.response && error.response.status === 402) {
+      res.status(402).json({ error: 'Error: Límite de uso de la API alcanzado. Por favor, intente de nuevo más tarde.' });
+    } else {
+      res.status(500).json({ error: 'Error al buscar o traducir recetas' });
+    }
   }
 });
 
