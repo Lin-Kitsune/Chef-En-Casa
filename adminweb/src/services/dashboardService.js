@@ -1,14 +1,20 @@
 // services/dashboardService.js
 
 export const getDailyUserActivity = async () => {
-    // Simulación de datos diarios
-    return [120, 150, 180, 200, 170, 220, 250];
-  };
-  
-  export const getMonthlyUserActivity = async () => {
-    // Simulación de datos mensuales
-    return [3000, 3200, 3500, 3400, 3100, 3300, 3600]; // Datos de usuarios activos durante semanas del mes
-  };  
+  // Simulación de datos diarios
+  return [120, 150, 180, 200, 170, 220, 250];
+};
+
+export const getMonthlyUserActivity = async () => {
+  // Simulación de datos mensuales
+  return [3000, 3200, 3500, 3400, 3100, 3300, 3600]; // Datos de usuarios activos durante semanas del mes
+};
+
+export const getHourlyUserActivity = async () => {
+  // Simulación de datos por hora
+  return [30, 20, 25, 15, 10, 5, 10, 50, 80, 120, 150, 170, 160, 140, 130, 125, 150, 180, 200, 190, 180, 160, 100, 50];
+};
+ 
     
   export const getNewUsersDaily = async () => {
     return [5, 10, 8, 6, 12, 15, 20];

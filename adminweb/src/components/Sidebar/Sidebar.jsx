@@ -4,6 +4,7 @@ import './Sidebar.css';
 
 const Sidebar = () => {
   const [active, setActive] = useState('Recetas');
+  const [showGraphicsDropdown, setShowGraphicsDropdown] = useState(false);
 
   return (
     <div className="relative w-50 bg-white border-t-8 border-[#619537] p-5 z-50 mt-4 lg:mt-0">
@@ -68,15 +69,49 @@ const Sidebar = () => {
         >
           <Link to="/meta">Meta</Link> {/* Agregar enlace a Meta */}
         </li>
-         {/* Nueva opción: Gráficos Operativos */}
-         <li
-            className={`${
-              active === 'Graficos' ? 'bg-[#619537] text-white' : 'text-black'
-            } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
-            onClick={() => setActive('Graficos')}
-          >
-            <Link to="/graficos">Gráficos Operativos</Link>
-          </li>
+        {/* Menú desplegable: Gráficos Operativos */}
+        <li
+          className={`${
+            active === 'Graficos' ? 'bg-[#619537] text-white' : 'text-black'
+          } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
+          onClick={() => {
+            setActive('Graficos');
+            setShowGraphicsDropdown(!showGraphicsDropdown);
+          }}
+        >
+          Gráficos Operativos
+        </li>
+        {showGraphicsDropdown && (
+          <ul className="pl-5 space-y-2">
+            <li className="text-black font-bold text-lg py-2 px-4 cursor-pointer hover:bg-gray-200 rounded-lg">
+              <Link to="/graficos/usuarios">Usuarios</Link>
+            </li>
+            <li className="text-black font-bold text-lg py-2 px-4 cursor-pointer hover:bg-gray-200 rounded-lg">
+              <Link to="/graficos/ingredientes">Ingredientes</Link>
+            </li>
+            <li className="text-black font-bold text-lg py-2 px-4 cursor-pointer hover:bg-gray-200 rounded-lg">
+              <Link to="/graficos/recetas">Recetas</Link>
+            </li>
+            <li className="text-black font-bold text-lg py-2 px-4 cursor-pointer hover:bg-gray-200 rounded-lg">
+              <Link to="/graficos/reclamos">Reclamos</Link>
+            </li>
+            <li className="text-black font-bold text-lg py-2 px-4 cursor-pointer hover:bg-gray-200 rounded-lg">
+              <Link to="/graficos/convenios">Convenios</Link>
+            </li>
+            <li className="text-black font-bold text-lg py-2 px-4 cursor-pointer hover:bg-gray-200 rounded-lg">
+              <Link to="/graficos/cupones">Cupones y Fidelización</Link>
+            </li>
+            <li className="text-black font-bold text-lg py-2 px-4 cursor-pointer hover:bg-gray-200 rounded-lg">
+              <Link to="/graficos/promociones">Promociones y Publicidad</Link>
+            </li>
+            <li className="text-black font-bold text-lg py-2 px-4 cursor-pointer hover:bg-gray-200 rounded-lg">
+              <Link to="/graficos/geografia">Geografía</Link>
+            </li>
+            <li className="text-black font-bold text-lg py-2 px-4 cursor-pointer hover:bg-gray-200 rounded-lg">
+              <Link to="/graficos/premium">Funcionalidades Premium</Link>
+            </li>
+          </ul>
+        )}
       </ul>
     </div>
   );

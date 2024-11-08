@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import 'leaflet/dist/leaflet.css';
+
 import Navbar from './components/Navbar/Navbar';
 import Sidebar from './components/Sidebar/Sidebar';
 import Recetas from './components/Recetas/Recetas';
@@ -12,7 +14,17 @@ import UserList from './components/Usuarios/UserList.jsx';   // Importar UserLis
 import Consultas from './components/Consultas/Consultas.jsx';
 import Notificaciones from './components/Notificaciones/Notificaciones.jsx';
 import Convenios from './components/Convenios/Convenios.jsx';
-import GraficosOperativos from './components/Graficos/GraficosOperativos.jsx';
+
+import Usuarios from './components/Graficos/Usuarios.jsx';
+import GraIngredientes from './components/Graficos/GraIngredientes.jsx';
+import GraRecetas from './components/Graficos/GraRecetas.jsx';
+import Reclamos from './components/Graficos/Reclamos.jsx';
+import GraConvenios from './components/Graficos/GraConvenios.jsx';
+import GraCupones from './components/Graficos/GraCupones.jsx';
+import Promociones from './components/Graficos/Promociones.jsx';
+import Geografia from './components/Graficos/Geografia.jsx';
+import Premium from './components/Graficos/Premium.jsx';
+
 
 function App() {
   return (
@@ -60,8 +72,16 @@ const ProtectedLayout = () => {
               <Route path="/reclamos" element={<Consultas/>} />
               <Route path="/notificaciones" element={<Notificaciones/>} />
               <Route path="/convenios" element={<Convenios/>} />
-              <Route path="/graficos" element={<GraficosOperativos/>} />
-              {/* Puedes añadir más rutas aquí, por ejemplo ingredientes, usuarios, etc. */}
+              {/* Rutas de cada sección de gráficos */}
+              <Route path="/graficos/usuarios" element={<Usuarios />} />
+              <Route path="/graficos/ingredientes" element={<GraIngredientes />} />
+              <Route path="/graficos/recetas" element={<GraRecetas />} />
+              <Route path="/graficos/reclamos" element={<Reclamos />} />
+              <Route path="/graficos/convenios" element={<GraConvenios />} />
+              <Route path="/graficos/cupones" element={<GraCupones />} />
+              <Route path="/graficos/promociones" element={<Promociones />} />
+              <Route path="/graficos/geografia" element={<Geografia />} />
+              <Route path="/graficos/premium" element={<Premium />} />
             </Routes>
           </div>
         </div>
