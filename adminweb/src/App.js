@@ -14,6 +14,7 @@ import UserList from './components/Usuarios/UserList.jsx';   // Importar UserLis
 import Consultas from './components/Consultas/Consultas.jsx';
 import Notificaciones from './components/Notificaciones/Notificaciones.jsx';
 import Convenios from './components/Convenios/Convenios.jsx';
+import Cupones from './components/Cupones/Cupones.jsx';
 
 import Usuarios from './components/Graficos/Usuarios.jsx';
 import GraIngredientes from './components/Graficos/GraIngredientes.jsx';
@@ -72,6 +73,7 @@ const ProtectedLayout = () => {
               <Route path="/reclamos" element={<Consultas/>} />
               <Route path="/notificaciones" element={<Notificaciones/>} />
               <Route path="/convenios" element={<Convenios/>} />
+              <Route path="/cupones" element={<Cupones/>} />
               {/* Rutas de cada sección de gráficos */}
               <Route path="/graficos/usuarios" element={<Usuarios />} />
               <Route path="/graficos/ingredientes" element={<GraIngredientes />} />
