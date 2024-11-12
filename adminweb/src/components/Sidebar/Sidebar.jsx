@@ -60,6 +60,15 @@ const Sidebar = () => {
         >
           <Link to="/convenios">Convenios (Socios)</Link>
         </li>
+         {/* Nueva opción: Cupones */}
+         <li
+          className={`${
+            active === 'Cupones' ? 'bg-[#619537] text-white' : 'text-black'
+          } font-bold text-lg py-2 px-4 rounded-lg cursor-pointer transition-colors duration-300`}
+          onClick={() => setActive('Cupones')}
+        >
+          <Link to="/cupones">Cupones</Link>
+        </li>
 
         <li
           className={`${
