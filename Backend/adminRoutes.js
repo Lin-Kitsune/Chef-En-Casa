@@ -8,6 +8,7 @@ const multer = require('multer'); // Middleware para manejar archivos
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose'); // models/Notificacion.js (solo si usas Mongoose)
+const { crearNotificacion } = require('./models/Notificaciones'); // Importa la función de crear notificación
 const Convenio = require('./models/Convenio');
 const QRCode = require('qrcode');
 
@@ -764,11 +765,12 @@ router.post('/convenios', upload.single('imagen'), async (req, res) => {
   const imagen = req.file ? req.file.path : null;
 
   if (!empresa || !producto || !descripcion) {
+    console.log('Falta información en los campos obligatorios');
     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
   }
 
   try {
-    const db = await req.app.get('db'); // Obtener la conexión de la base de datos
+    const db = client.db('chefencasa'); // Obtener la conexión de la base de datos
     const convenioModel = new Convenio(db);
 
     const nuevoConvenio = {
@@ -780,7 +782,14 @@ router.post('/convenios', upload.single('imagen'), async (req, res) => {
     };
 
     await convenioModel.create(nuevoConvenio);
-    res.status(201).json({ message: 'Convenio creado exitosamente', convenio: nuevoConvenio });
+
+    // Crear una notificación después de crear el convenio
+    const mensaje = `Nuevo convenio creado: ${empresa} - ${producto}`;
+    const tipo = 'convenio';  // Especifica el tipo de notificación como "convenio"
+
+    
+
+    res.status(201).json({ message: 'Convenio creado exitosamente y notificación enviada', convenio: nuevoConvenio });
   } catch (error) {
     console.error('Error al crear convenio:', error);
     res.status(500).json({ message: 'Error al crear convenio' });
@@ -790,7 +799,7 @@ router.post('/convenios', upload.single('imagen'), async (req, res) => {
 // Obtener todos los convenios
 router.get('/convenios', async (req, res) => {
   try {
-    const db = await req.app.get('db');
+    const db = client.db('chefencasa');
     const convenioModel = new Convenio(db);
     const convenios = await convenioModel.findAll();
     res.status(200).json(convenios);
@@ -805,7 +814,7 @@ router.get('/convenios/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const db = await req.app.get('db');
+    const db = client.db('chefencasa');
     const convenioModel = new Convenio(db);
     const convenio = await convenioModel.findById(id);
 
@@ -827,7 +836,7 @@ router.put('/convenios/:id', upload.single('imagen'), async (req, res) => {
   const imagen = req.file ? req.file.path : null;
 
   try {
-    const db = await req.app.get('db');
+    const db = client.db('chefencasa');
     const convenioModel = new Convenio(db);
 
     const updateData = {
@@ -850,65 +859,12 @@ router.put('/convenios/:id', upload.single('imagen'), async (req, res) => {
   }
 });
 
-// Obtener un convenio por nombre de la empresa
-router.get('/convenios/empresa/:nombreEmpresa', authenticateToken, checkRole('admin'), async (req, res) => {
-  const { nombreEmpresa } = req.params;
-
-  try {
-    const db = await connectToDatabase();
-    const convenio = await db.collection('convenios').findOne({ empresa: nombreEmpresa });
-
-    if (!convenio) {
-      return res.status(404).json({ message: 'Convenio no encontrado para la empresa especificada' });
-    }
-
-    res.status(200).json(convenio);
-  } catch (error) {
-    console.error('Error al obtener convenio:', error);
-    res.status(500).json({ message: 'Error al obtener convenio', error: error.message });
-  }
-});
-
-// Actualizar un convenio por nombre de la empresa
-router.put('/convenios/empresa/:nombreEmpresa', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
-  const { nombreEmpresa } = req.params;
-  const { empresa, producto, descripcion } = req.body;
-  const imagen = req.file ? req.file.path : null;
-
-  try {
-    const db = await connectToDatabase();
-    const conveniosCollection = db.collection('convenios');
-
-    // Crear objeto de actualización dinámico
-    const updateData = {
-      empresa,
-      producto,
-      descripcion,
-      ...(imagen && { imagen }),
-    };
-
-    const result = await conveniosCollection.updateOne(
-      { empresa: nombreEmpresa },
-      { $set: updateData }
-    );
-
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: 'Convenio no encontrado para la empresa especificada' });
-    }
-
-    res.status(200).json({ message: 'Convenio actualizado exitosamente' });
-  } catch (error) {
-    console.error('Error al actualizar convenio:', error);
-    res.status(500).json({ message: 'Error al actualizar convenio', error: error.message });
-  }
-});
-
-// Eliminar un convenio
+// Eliminar un convenio por ID
 router.delete('/convenios/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const db = await req.app.get('db');
+    const db = client.db('chefencasa');
     const convenioModel = new Convenio(db);
 
     const result = await convenioModel.delete(id);
