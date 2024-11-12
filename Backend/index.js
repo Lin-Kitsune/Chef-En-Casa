@@ -23,6 +23,7 @@ const { crearNotificacion, obtenerNotificaciones } = require('./models/Notificac
 const cron = require('node-cron');
 require('dotenv').config();
 
+
 // Cargar las variables de entorno desde el archivo .env
 dotenv.config();
 
@@ -68,6 +69,7 @@ const client = new MongoClient(uri, {
     strict: true,
     deprecationErrors: true,
   },
+  connectTimeoutMS: 30000,
 });
 
 let db; // Variable para almacenar la conexión a la base de datos
