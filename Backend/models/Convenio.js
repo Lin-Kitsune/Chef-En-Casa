@@ -1,4 +1,3 @@
-// models/Convenio.js
 const { ObjectId } = require('mongodb');
 
 class Convenio {
@@ -7,23 +6,60 @@ class Convenio {
   }
 
   async create(convenio) {
-    return await this.collection.insertOne(convenio);
+    try {
+      const result = await this.collection.insertOne(convenio);
+      return result;
+    } catch (error) {
+      console.error('Error en create():', error);
+      throw new Error('Error al crear convenio');
+    }
   }
 
   async findAll() {
-    return await this.collection.find({}).toArray();
+    try {
+      return await this.collection.find({}).toArray();
+    } catch (error) {
+      console.error('Error en findAll():', error);
+      throw new Error('Error al obtener convenios');
+    }
   }
 
   async findById(id) {
-    return await this.collection.findOne({ _id: new ObjectId(id) });
+    try {
+      if (!ObjectId.isValid(id)) {
+        throw new Error('ID inválido');
+      }
+      return await this.collection.findOne({ _id: new ObjectId(id) });
+    } catch (error) {
+      console.error('Error en findById():', error);
+      throw new Error('Error al obtener convenio por ID');
+    }
   }
 
   async update(id, data) {
-    return await this.collection.updateOne({ _id: new ObjectId(id) }, { $set: data });
+    try {
+      if (!ObjectId.isValid(id)) {
+        throw new Error('ID inválido');
+      }
+      const result = await this.collection.updateOne({ _id: new ObjectId(id) }, { $set: data });
+      return result;
+    } catch (error) {
+      console.error('Error en update():', error);
+      throw new Error('Error al actualizar convenio');
+    }
   }
 
   async delete(id) {
-    return await this.collection.deleteOne({ _id: new ObjectId(id) });
+    try {
+      if (!ObjectId.isValid(id)) {
+        throw new Error('ID inválido');
+      }
+      const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
+      return result;
+    } catch (error) {
+      console.error('Error en delete():', error);
+      throw new Error('Error al eliminar convenio');
+    }
   }
 }
 
