@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { getAllConvenios, createConvenio, updateConvenio, deleteConvenio } from '../../services/convenioService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faEdit, faSearch, faPlus } from '@fortawesome/free-solid-svg-icons';
-import CrearConvenio from './CrearConvenio';  // Componente para crear/editar convenio
+import CrearConvenio from './CrearConvenio';
+
+const IMAGE_BASE_URL = 'http://localhost:4000';
 
 const Convenios = () => {
   const [convenios, setConvenios] = useState([]);
@@ -11,55 +13,71 @@ const Convenios = () => {
   const [addConvenioModalVisible, setAddConvenioModalVisible] = useState(false);
   const [selectedConvenio, setSelectedConvenio] = useState(null);
 
-  // Obtener lista de convenios al cargar
-  useEffect(() => {
-    const fetchConvenios = async () => {
+  // Función para obtener los convenios desde el backend
+  const fetchConvenios = async () => {
+    try {
+      setLoading(true); // Muestra el estado de carga
       const convenioList = await getAllConvenios();
       setConvenios(convenioList);
-      setLoading(false);
-    };
+    } catch (error) {
+      console.error('Error fetching convenios:', error);
+      alert('Error al cargar convenios. Inténtalo más tarde.');
+    } finally {
+      setLoading(false); // Oculta el estado de carga
+    }
+  };
 
+  useEffect(() => {
     fetchConvenios();
   }, []);
 
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar este convenio?')) {
-      await deleteConvenio(id);
-      setConvenios(convenios.filter(conv => conv._id !== id));
+      try {
+        await deleteConvenio(id);
+        fetchConvenios(); // Recarga el listado después de eliminar
+      } catch (error) {
+        console.error('Error al eliminar convenio:', error);
+        alert('Error al eliminar el convenio. Inténtalo nuevamente.');
+      }
     }
   };
-
+  
   const openEditModal = (convenio) => {
-    setSelectedConvenio(convenio);  // Selecciona el convenio para editar
-    setAddConvenioModalVisible(true);  // Abre el modal de edición
+    setSelectedConvenio(convenio);
+    setAddConvenioModalVisible(true);
   };
 
   const closeAddConvenioModal = () => {
-    setSelectedConvenio(null);  // Resetea el convenio seleccionado
-    setAddConvenioModalVisible(false);  // Cierra el modal
+    setSelectedConvenio(null);
+    setAddConvenioModalVisible(false);
   };
 
   const openAddConvenioModal = () => {
-    setSelectedConvenio(null);  // Reset para crear nuevo convenio
-    setAddConvenioModalVisible(true);  // Abre el modal de creación
+    setSelectedConvenio(null);
+    setAddConvenioModalVisible(true);
   };
 
-  const handleCreateOrUpdateConvenio = async (convenio) => {
-    if (selectedConvenio) {
-      // Actualizar convenio existente
-      await updateConvenio(convenio._id, convenio);
-      setConvenios(convenios.map(c => (c._id === convenio._id ? convenio : c)));
-    } else {
-      // Crear nuevo convenio
-      const createdConvenio = await createConvenio(convenio);
-      setConvenios([...convenios, createdConvenio]);
+  const handleCreateOrUpdateConvenio = async (convenioData) => {
+    try {
+      if (selectedConvenio) {
+        // Editar convenio
+        await updateConvenio(selectedConvenio._id, convenioData);
+      } else {
+        // Crear convenio
+        await createConvenio(convenioData);
+      }
+      fetchConvenios(); // Recarga el listado después de agregar o editar
+    } catch (error) {
+      console.error('Error creando/actualizando convenio:', error);
+      alert('Error al guardar el convenio. Inténtalo nuevamente.');
+    } finally {
+      closeAddConvenioModal();
     }
-    closeAddConvenioModal();  // Cierra el modal después de crear/editar
   };
 
-  // Filtrar convenios por búsqueda
-  const filteredConvenios = convenios.filter(convenio =>
-    convenio.empresa.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConvenios = convenios.filter((convenio) =>
+    convenio?.empresa?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalConvenios = convenios.length;
@@ -81,12 +99,8 @@ const Convenios = () => {
           />
         </div>
 
-        {/* Mostrar el total de convenios */}
-        <div className="text-lg font-semibold">
-          Total de convenios: {totalConvenios}
-        </div>
+        <div className="text-lg font-semibold">Total de convenios: {totalConvenios}</div>
 
-        {/* Botón para abrir el modal de agregar convenio */}
         <button
           className="bg-verde-chef text-white py-2 px-6 rounded-full font-bold hover:bg-green-600 transition duration-300 flex items-center space-x-2"
           onClick={openAddConvenioModal}
@@ -96,27 +110,25 @@ const Convenios = () => {
         </button>
       </div>
 
-      {/* Grid de convenios */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredConvenios.map((convenio) => (
           <div key={convenio._id} className="bg-white rounded-lg shadow-md p-4 flex flex-col h-full">
             <div className="flex-grow">
-              <img src={convenio.imagenProducto} alt={convenio.producto} className="w-full h-32 object-cover mb-4 rounded-lg" />
+              <img 
+                src={convenio.imagen ? `${IMAGE_BASE_URL}/${convenio.imagen}` : 'ruta/a/imagen/por/defecto.jpg'}
+                alt={convenio.producto}
+                className="w-full h-32 object-cover mb-4 rounded-lg"
+                crossOrigin="anonymous" 
+              />
               <p className="text-lg font-semibold">Empresa: {convenio.empresa}</p>
               <p className="text-gray-600">Producto: {convenio.producto}</p>
               <p className="text-sm text-gray-400">Descripción: {convenio.descripcion}</p>
             </div>
             <div className="mt-4 flex space-x-4 justify-between">
-              <button
-                className="bg-verde-chef text-white py-2 px-4 rounded-full font-bold hover:bg-blue-600 transition duration-300"
-                onClick={() => openEditModal(convenio)}
-              >
+              <button className="bg-verde-chef text-white py-2 px-4 rounded-full font-bold hover:bg-blue-600" onClick={() => openEditModal(convenio)}>
                 <FontAwesomeIcon icon={faEdit} /> Editar
               </button>
-              <button
-                onClick={() => handleDelete(convenio._id)}
-                className="bg-red-500 text-white py-2 px-4 rounded-full font-bold hover:bg-red-600 transition duration-300"
-              >
+              <button onClick={() => handleDelete(convenio._id)} className="bg-red-500 text-white py-2 px-4 rounded-full font-bold hover:bg-red-600">
                 <FontAwesomeIcon icon={faTrash} /> Eliminar
               </button>
             </div>
@@ -124,14 +136,9 @@ const Convenios = () => {
         ))}
       </div>
 
-      {/* Modal para agregar o editar convenio */}
       {addConvenioModalVisible && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-          <CrearConvenio 
-            onClose={closeAddConvenioModal} 
-            onSave={handleCreateOrUpdateConvenio} 
-            convenio={selectedConvenio} 
-          />
+          <CrearConvenio onClose={closeAddConvenioModal} onSave={handleCreateOrUpdateConvenio} convenio={selectedConvenio} />
         </div>
       )}
     </div>

@@ -4,38 +4,34 @@ const CrearConvenio = ({ onClose, onSave, convenio }) => {
   const [empresa, setEmpresa] = useState(convenio ? convenio.empresa : '');
   const [producto, setProducto] = useState(convenio ? convenio.producto : '');
   const [descripcion, setDescripcion] = useState(convenio ? convenio.descripcion : '');
-  const [imagenProducto, setImagenProducto] = useState(convenio ? convenio.imagenProducto : '');
+  const [imagenProducto, setImagenProducto] = useState(null); // Almacena el archivo en lugar de la URL
 
   useEffect(() => {
     if (convenio) {
       setEmpresa(convenio.empresa);
       setProducto(convenio.producto);
       setDescripcion(convenio.descripcion);
-      setImagenProducto(convenio.imagenProducto);
+      setImagenProducto(null); // Resetea la imagen para editar
     }
   }, [convenio]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagenProducto(reader.result);
-    };
     if (file) {
-      reader.readAsDataURL(file);
+      setImagenProducto(file); // Guardar el archivo directamente
     }
   };
 
   const handleSave = () => {
-    const newConvenio = {
-      _id: convenio ? convenio._id : Date.now(),
+    const convenioData = {
       empresa,
       producto,
       descripcion,
-      imagenProducto
+      imagenProducto, // Deja la imagen como parte del objeto
     };
-    onSave(newConvenio);
+    onSave(convenioData); // Envía los datos en formato de objeto
   };
+  
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-lg max-w-2xl w-full">
@@ -66,7 +62,7 @@ const CrearConvenio = ({ onClose, onSave, convenio }) => {
           />
         </div>
 
-        {/* Descripción (Ocupará ambas columnas) */}
+        {/* Descripción */}
         <div className="col-span-2">
           <label className="block text-lg font-semibold mb-2">Descripción</label>
           <textarea
@@ -86,7 +82,6 @@ const CrearConvenio = ({ onClose, onSave, convenio }) => {
             className="w-full cursor-pointer rounded-lg border-[1.5px] border-gray-300 bg-transparent p-2 font-normal outline-none transition file:mr-5 file:cursor-pointer file:border-0 file:border-r file:border-solid file:border-gray-300 file:bg-white file:px-2 file:py-2 file:text-gray-700 file:hover:bg-green-600 file:hover:text-white focus:border-green-500"
             onChange={handleImageChange}
           />
-          {/* No mostrar la imagen actual si estamos editando */}
         </div>
       </div>
 
