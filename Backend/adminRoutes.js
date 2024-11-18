@@ -7,6 +7,7 @@ const { authenticateToken, checkRole } = require('./middleware/authMiddleware');
 const multer = require('multer'); // Middleware para manejar archivos
 const fs = require('fs');
 const path = require('path');
+const connectToDatabase = require('./index');
 const mongoose = require('mongoose'); // models/Notificacion.js (solo si usas Mongoose)
 const { crearNotificacion } = require('./models/Notificaciones'); // Importa la función de crear notificación
 const Convenio = require('./models/Convenio');
@@ -760,64 +761,81 @@ router.get('/notificaciones', authenticateToken, async (req, res) => {
 
 //==============================CONVENIOS==========================================
 // Crear un convenio
-router.post('/convenios', upload.single('imagen'), async (req, res) => {
+router.post('/convenios', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
   const { empresa, producto, descripcion } = req.body;
   const imagen = req.file ? req.file.path : null;
 
+  // Validar campos obligatorios
   if (!empresa || !producto || !descripcion) {
-    console.log('Falta información en los campos obligatorios');
     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
   }
 
   try {
-    const db = client.db('chefencasa'); // Obtener la conexión de la base de datos
+    await client.connect();
+    const db = client.db('chefencasa');
     const convenioModel = new Convenio(db);
+    const notificacionesCollection = db.collection('notificaciones'); // Para crear notificaciones
 
+    // Crear el convenio
     const nuevoConvenio = {
       empresa,
       producto,
       descripcion,
       imagen,
-      fechaCreacion: new Date()
+      fechaCreacion: new Date(),
     };
 
     await convenioModel.create(nuevoConvenio);
 
-    // Crear una notificación después de crear el convenio
-    const mensaje = `Nuevo convenio creado: ${empresa} - ${producto}`;
-    const tipo = 'convenio';  // Especifica el tipo de notificación como "convenio"
+    // Crear una notificación
+    const notificacion = {
+      mensaje: `Nuevo convenio creado: ${empresa} - ${producto}`,
+      tipo: 'convenio',
+      fecha: new Date(),
+      visto: false,
+    };
+    await notificacionesCollection.insertOne(notificacion);
 
-    
-
-    res.status(201).json({ message: 'Convenio creado exitosamente y notificación enviada', convenio: nuevoConvenio });
+    res.status(201).json({ message: 'Convenio creado exitosamente', convenio: nuevoConvenio });
   } catch (error) {
     console.error('Error al crear convenio:', error);
-    res.status(500).json({ message: 'Error al crear convenio' });
+    res.status(500).json({ message: 'Error al crear convenio', error: error.message });
+  } finally {
+    await client.close();
   }
 });
 
 // Obtener todos los convenios
-router.get('/convenios', async (req, res) => {
+router.get('/convenios', authenticateToken, async (req, res) => {
   try {
+    await client.connect();
     const db = client.db('chefencasa');
     const convenioModel = new Convenio(db);
+
     const convenios = await convenioModel.findAll();
     res.status(200).json(convenios);
   } catch (error) {
     console.error('Error al obtener convenios:', error);
-    res.status(500).json({ message: 'Error al obtener convenios' });
+    res.status(500).json({ message: 'Error al obtener convenios', error: error.message });
+  } finally {
+    await client.close();
   }
 });
 
 // Obtener un convenio por ID
-router.get('/convenios/:id', async (req, res) => {
+router.get('/convenios/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
 
   try {
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+
+    await client.connect();
     const db = client.db('chefencasa');
     const convenioModel = new Convenio(db);
-    const convenio = await convenioModel.findById(id);
 
+    const convenio = await convenioModel.findById(id);
     if (!convenio) {
       return res.status(404).json({ message: 'Convenio no encontrado' });
     }
@@ -825,17 +843,29 @@ router.get('/convenios/:id', async (req, res) => {
     res.status(200).json(convenio);
   } catch (error) {
     console.error('Error al obtener convenio:', error);
-    res.status(500).json({ message: 'Error al obtener convenio' });
+    res.status(500).json({ message: 'Error al obtener convenio', error: error.message });
+  } finally {
+    await client.close();
   }
 });
 
 // Actualizar un convenio por ID
-router.put('/convenios/:id', upload.single('imagen'), async (req, res) => {
+router.put('/convenios/:id', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
   const { id } = req.params;
   const { empresa, producto, descripcion } = req.body;
   const imagen = req.file ? req.file.path : null;
 
+  // Validar campos obligatorios
+  if (!empresa || !producto || !descripcion) {
+    return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  }
+
   try {
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+
+    await client.connect();
     const db = client.db('chefencasa');
     const convenioModel = new Convenio(db);
 
@@ -843,7 +873,7 @@ router.put('/convenios/:id', upload.single('imagen'), async (req, res) => {
       empresa,
       producto,
       descripcion,
-      ...(imagen && { imagen })
+      ...(imagen && { imagen }), // Solo incluye imagen si existe
     };
 
     const result = await convenioModel.update(id, updateData);
@@ -855,28 +885,39 @@ router.put('/convenios/:id', upload.single('imagen'), async (req, res) => {
     res.status(200).json({ message: 'Convenio actualizado exitosamente' });
   } catch (error) {
     console.error('Error al actualizar convenio:', error);
-    res.status(500).json({ message: 'Error al actualizar convenio' });
+    res.status(500).json({ message: 'Error al actualizar convenio', error: error.message });
+  } finally {
+    await client.close();
   }
 });
 
 // Eliminar un convenio por ID
-router.delete('/convenios/:id', async (req, res) => {
+router.delete('/convenios/:id', authenticateToken, checkRole('admin'), async (req, res) => {
   const { id } = req.params;
 
   try {
-    const db = client.db('chefencasa');
+    // Validar si el ID es válido
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+
+    const db = client.db('chefencasa'); // Conexión a la base de datos
     const convenioModel = new Convenio(db);
 
+    // Intentar eliminar el convenio
     const result = await convenioModel.delete(id);
 
+    // Verificar si el convenio fue encontrado y eliminado
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: 'Convenio no encontrado' });
     }
 
+    // Respuesta exitosa
     res.status(200).json({ message: 'Convenio eliminado exitosamente' });
   } catch (error) {
+    // Manejo de errores
     console.error('Error al eliminar convenio:', error);
-    res.status(500).json({ message: 'Error al eliminar convenio' });
+    res.status(500).json({ message: 'Error al eliminar convenio', error: error.message });
   }
 });
 //==============================CUPONES==========================================
