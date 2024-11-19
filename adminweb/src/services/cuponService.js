@@ -1,25 +1,70 @@
-// src/services/cuponService.js
+import axios from 'axios';
+import { getToken } from './authService';
 
+const API_URL = 'http://localhost:4000/api/admin/cupones';
+
+// Obtener todos los cupones
 export const getAllCupones = async () => {
-    // Simulación de llamada a la API para obtener todos los cupones
-    return [
-        { id: 1, nombre: 'Descuento Santa Isabel', descripcion: '15% en compras mayores a $24.990', descuento: 15, puntos_necesarios: 200, fecha_expiracion: '2025-01-01', tienda: 'Santa Isabel' },
-        { id: 2, nombre: 'Descuento Jumbo', descripcion: '10% en compras mayores a $30.000', descuento: 10, puntos_necesarios: 150, fecha_expiracion: '2025-01-01', tienda: 'Jumbo' },
-    ];
+  try {
+    const token = await getToken();
+    console.log('Llamando a API con token:', token);
+    const response = await axios.get(API_URL, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log('Respuesta de la API:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener cupones:', error.response || error.message);
+    throw error;
+  }
 };
 
+// Crear un nuevo cupón
 export const createCupon = async (cupon) => {
-    // Simulación de creación de un nuevo cupón
-    cupon.id = Date.now();
-    return cupon;
+  try {
+    const token = await getToken();
+    const response = await axios.post(API_URL, cupon, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('Cupón creado:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error al crear cupón:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
-export const updateCupon = async (id, cupon) => {
-    // Simulación de actualización de un cupón
-    return cupon;
+// Actualizar un cupón por ID
+export const updateCupon = async (id, updatedCupon) => {
+  try {
+    const token = await getToken();
+    const response = await axios.put(`${API_URL}/${id}`, updatedCupon, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('Cupón actualizado:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error al actualizar cupón:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
+// Eliminar un cupón por ID
 export const deleteCupon = async (id) => {
-    // Simulación de eliminación de un cupón
-    return true;
+  try {
+    const token = await getToken();
+    await axios.delete(`${API_URL}/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log('Cupón eliminado:', id);
+  } catch (error) {
+    console.error('Error al eliminar cupón:', error.response?.data || error.message);
+    throw error;
+  }
 };
