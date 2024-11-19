@@ -11,6 +11,7 @@ const connectToDatabase = require('./index');
 const mongoose = require('mongoose'); // models/Notificacion.js (solo si usas Mongoose)
 const { crearNotificacion } = require('./models/Notificaciones'); // Importa la función de crear notificación
 const Convenio = require('./models/Convenio');
+const Cupon = require('./models/Cupon');
 const QRCode = require('qrcode');
 
 const NotificacionSchema = new mongoose.Schema({
@@ -930,32 +931,38 @@ router.post('/cupones', authenticateToken, checkRole('admin'), async (req, res) 
   }
 
   try {
-    // Generar el QR
+    const db = client.db('chefencasa');
+    const cuponModel = new Cupon(db);
+
+    // Generar QR
     const qrData = `${nombre} - Descuento: ${descuento}% - Puntos necesarios: ${puntos_necesarios}`;
     const qrCode = await QRCode.toDataURL(qrData);
 
-    const nuevoCupon = new Cupon({
+    const nuevoCupon = {
       nombre,
       descripcion,
       descuento,
       puntos_necesarios,
       fecha_expiracion: new Date(fecha_expiracion),
       tienda,
-      qr_code: qrCode // Guardar el QR en formato de URL
-    });
+      qr_code: qrCode,
+    };
 
-    await nuevoCupon.save();
-    res.status(201).json({ message: 'Cupón creado exitosamente', cupon: nuevoCupon });
+    const result = await cuponModel.create(nuevoCupon);
+    res.status(201).json({ message: 'Cupón creado exitosamente', cupon: result });
   } catch (error) {
     console.error('Error al crear cupón:', error);
-    res.status(500).json({ message: 'Error al crear cupón', error: error.message });
+    res.status(500).json({ message: 'Error al crear cupón' });
   }
 });
 
 // Obtener todos los cupones
 router.get('/cupones', authenticateToken, checkRole('admin'), async (req, res) => {
   try {
-    const cupones = await Cupon.find();
+    const db = client.db('chefencasa');
+    const cuponModel = new Cupon(db);
+
+    const cupones = await cuponModel.findAll();
     res.status(200).json(cupones);
   } catch (error) {
     console.error('Error al obtener cupones:', error);
@@ -968,18 +975,22 @@ router.get('/cupones/:id', authenticateToken, checkRole('admin'), async (req, re
   const { id } = req.params;
 
   try {
-    const cupon = await Cupon.findById(id);
+    const db = client.db('chefencasa');
+    const cuponModel = new Cupon(db);
+
+    const cupon = await cuponModel.findById(id);
     if (!cupon) {
       return res.status(404).json({ message: 'Cupón no encontrado' });
     }
+
     res.status(200).json(cupon);
   } catch (error) {
     console.error('Error al obtener cupón:', error);
-    res.status(500).json({ message: 'Error al obtener el cupón' });
+    res.status(500).json({ message: 'Error al obtener cupón' });
   }
 });
 
-// Actualizar un cupón
+// Actualizar un cupón por ID
 router.put('/cupones/:id', authenticateToken, checkRole('admin'), async (req, res) => {
   const { id } = req.params;
   const { nombre, descripcion, descuento, puntos_necesarios, fecha_expiracion, tienda } = req.body;
@@ -989,38 +1000,49 @@ router.put('/cupones/:id', authenticateToken, checkRole('admin'), async (req, re
   }
 
   try {
-    const cuponActualizado = await Cupon.findByIdAndUpdate(
-      id,
-      { nombre, descripcion, descuento, puntos_necesarios, fecha_expiracion: new Date(fecha_expiracion), tienda },
-      { new: true }
-    );
+    const db = client.db('chefencasa');
+    const cuponModel = new Cupon(db);
 
-    if (!cuponActualizado) {
-      return res.status(404).json({ message: 'Cupón no encontrado' });
+    const updateData = {
+      nombre,
+      descripcion,
+      descuento,
+      puntos_necesarios,
+      fecha_expiracion: new Date(fecha_expiracion),
+      tienda,
+    };
+
+    const result = await cuponModel.update(id, updateData);
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Cupón no encontrado o sin cambios' });
     }
 
-    res.status(200).json({ message: 'Cupón actualizado exitosamente', cupon: cuponActualizado });
+    res.status(200).json({ message: 'Cupón actualizado exitosamente' });
   } catch (error) {
     console.error('Error al actualizar cupón:', error);
-    res.status(500).json({ message: 'Error al actualizar el cupón' });
+    res.status(500).json({ message: 'Error al actualizar cupón' });
   }
 });
 
-// Eliminar un cupón
+// Eliminar un cupón por ID
 router.delete('/cupones/:id', authenticateToken, checkRole('admin'), async (req, res) => {
   const { id } = req.params;
 
   try {
-    const result = await Cupon.findByIdAndDelete(id);
+    const db = client.db('chefencasa');
+    const cuponModel = new Cupon(db);
 
-    if (!result) {
+    const result = await cuponModel.delete(id);
+
+    if (result.deletedCount === 0) {
       return res.status(404).json({ message: 'Cupón no encontrado' });
     }
 
     res.status(200).json({ message: 'Cupón eliminado exitosamente' });
   } catch (error) {
     console.error('Error al eliminar cupón:', error);
-    res.status(500).json({ message: 'Error al eliminar el cupón' });
+    res.status(500).json({ message: 'Error al eliminar cupón' });
   }
 });
 
