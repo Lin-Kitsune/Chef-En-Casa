@@ -292,7 +292,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 //===============================================
-// CRUD Categorías
+// CRUD Categorías 
+// Se debe verificar las categorias, ya que los ingredientes no la traen, se debe eliminar por recomendacion para evitar inconsistencia en la llamada de los ingredientes 
 //===============================================
 
 // Ruta para agregar una nueva categoría
@@ -557,6 +558,8 @@ router.delete('/ingredientes/:id', authenticateToken, checkRole('admin'), async 
     await client.close();
   }
 });
+
+//Verificar campó Type: aqui se agrega si es dinner, lunch, breakfast o snack. Agregar este campo. 
 //=====================================================================================
 // ======================= CRUD DE RECETAS =======================
 
@@ -921,6 +924,7 @@ router.delete('/convenios/:id', authenticateToken, checkRole('admin'), async (re
     res.status(500).json({ message: 'Error al eliminar convenio', error: error.message });
   }
 });
+
 //==============================CUPONES==========================================
 // Crear un nuevo cupón con QR generado automáticamente
 router.post('/cupones', authenticateToken, checkRole('admin'), async (req, res) => {
