@@ -21,8 +21,13 @@ const { getNoticias } = require('./models/newsService');
 const path = require('path');
 const { crearNotificacion, obtenerNotificaciones } = require('./models/Notificaciones');
 const cron = require('node-cron');
+const http = require('http'); // Para crear un servidor HTTP
+const { Server } = require('socket.io'); // Importar socket.io
+const Actividades = require('./models/Actividades'); // Modelo de actividades
 require('dotenv').config();
 
+const server = http.createServer(app); // Crear un servidor HTTP
+const io = new Server(server); // Vincular socket.io al servidor HTTP
 
 // Cargar las variables de entorno desde el archivo .env
 dotenv.config();
@@ -1569,6 +1574,82 @@ app.get('/receta/compartir/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error al generar el enlace para compartir:', error.message);
     res.status(500).json({ message: 'Error al generar el enlace para compartir' });
+  }
+});
+
+//========================================GRAFICOS DE ADMINISTRADOR=============================================
+// Configuración de socket.io
+io.on('connection', (socket) => {
+  console.log('Cliente conectado:', socket.id);
+
+  // Opcional: Notificar al cliente cuando se desconecta
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado:', socket.id);
+  });
+});
+
+// Ruta para registrar actividades
+app.post('/actividades', async (req, res) => {
+  const { usuarioId, tipo, descripcion } = req.body;
+  
+  try {
+    const db = await connectToDatabase(); // Usar la conexión global
+    const actividadesModel = new Actividades(db);
+
+    // Registrar actividad en la base de datos
+    const nuevaActividad = await actividadesModel.registrarActividad(usuarioId, tipo, descripcion);
+
+    // Emitir evento de nueva actividad a los clientes conectados
+    io.emit('nuevaActividad', {
+      usuarioId,
+      tipo,
+      descripcion,
+      fecha: nuevaActividad.ops?.[0]?.fecha || new Date(),
+    });
+
+    res.status(201).json({ 
+      message: 'Actividad registrada exitosamente', 
+      actividad: nuevaActividad.ops ? nuevaActividad.ops[0] : nuevaActividad 
+    });
+  } catch (error) {
+    console.error('Error al registrar actividad:', error);
+    res.status(500).json({ message: 'Error al registrar actividad', error: error.message });
+  }
+});
+
+//=============================Visualizar datos específicos (diarios, semanales, mensuales)===================
+app.get('/actividades', async (req, res) => {
+  const { rango } = req.query;
+
+  try {
+    const validRangos = ['diario', 'semanal', 'mensual'];
+    if (!validRangos.includes(rango)) {
+      return res.status(400).json({ message: 'El rango proporcionado no es válido' });
+    }
+
+    const db = await connectToDatabase();
+    const actividadesModel = new Actividades(db);
+
+    const rangoFechas = {};
+    const ahora = new Date();
+
+    if (rango === 'diario') {
+      rangoFechas.startDate = new Date(ahora.setHours(0, 0, 0, 0));
+      rangoFechas.endDate = new Date(ahora.setHours(23, 59, 59, 999));
+    } else if (rango === 'semanal') {
+      const startOfWeek = new Date(ahora.setDate(ahora.getDate() - ahora.getDay()));
+      rangoFechas.startDate = new Date(startOfWeek.setHours(0, 0, 0, 0));
+      rangoFechas.endDate = new Date(ahora.setHours(23, 59, 59, 999));
+    } else if (rango === 'mensual') {
+      rangoFechas.startDate = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+      rangoFechas.endDate = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0);
+    }
+
+    const actividades = await actividadesModel.obtenerActividades({}, rangoFechas);
+    res.status(200).json(actividades);
+  } catch (error) {
+    console.error('Error al obtener actividades:', error);
+    res.status(500).json({ message: 'Error al obtener actividades', error: error.message });
   }
 });
 
