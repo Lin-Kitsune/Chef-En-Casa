@@ -26,15 +26,15 @@ const { Server } = require('socket.io'); // Importar socket.io
 const Actividades = require('./models/Actividades'); // Modelo de actividades
 require('dotenv').config();
 
-const server = http.createServer(app); // Crear un servidor HTTP
-const io = new Server(server); // Vincular socket.io al servidor HTTP
-
 // Cargar las variables de entorno desde el archivo .env
 dotenv.config();
 
 // Inicializar la aplicación Express
 const app = express();
 app.use(express.json());
+
+const server = http.createServer(app); // Crear un servidor HTTP
+const io = new Server(server); // Vincular socket.io al servidor HTTP
 
 // Usar Helmet para aumentar la seguridad agregando encabezados HTTP seguros
 app.use(helmet());
