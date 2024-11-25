@@ -13,6 +13,8 @@ const { crearNotificacion } = require('./models/Notificaciones'); // Importa la 
 const Convenio = require('./models/Convenio');
 const Cupon = require('./models/Cupon');
 const QRCode = require('qrcode');
+const Actividades = require('./models/Actividades');
+
 
 const NotificacionSchema = new mongoose.Schema({
   mensaje: { type: String, required: true },
@@ -1050,4 +1052,106 @@ router.delete('/cupones/:id', authenticateToken, checkRole('admin'), async (req,
   }
 });
 
+// Rutas para gráficos del panel de administración
+// ==========================================
+
+// Contabilizar ingredientes más almacenados por los usuarios
+router.get('/admin/ingredientes-mas-almacenados', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { rango } = req.query; // "diario", "semanal", "mensual"
+  try {
+    const db = await connectToDatabase();
+    const rangoFechas = calcularRangoFechas(rango);
+
+    const ingredientesMasAlmacenados = await db.collection('almacen').aggregate([
+      { $unwind: '$ingredientes' }, // Descomponer el array de ingredientes
+      { $match: { 'ingredientes.fechaIngreso': { $gte: rangoFechas.startDate, $lte: rangoFechas.endDate } } }, // Filtrar por rango de fechas
+      {
+        $group: {
+          _id: '$ingredientes.nombre', // Agrupar por nombre de ingrediente
+          totalCantidad: { $sum: '$ingredientes.cantidad' } // Sumar las cantidades
+        }
+      },
+      { $sort: { totalCantidad: -1 } }, // Ordenar de mayor a menor
+      { $limit: 10 } // Limitar a los 10 más almacenados
+    ]).toArray();
+
+    res.status(200).json(ingredientesMasAlmacenados);
+  } catch (error) {
+    console.error('Error al obtener ingredientes más almacenados:', error.message);
+    res.status(500).json({ message: 'Error al obtener ingredientes más almacenados.', error: error.message });
+  }
+});
+
+// Contabilizar ingredientes más usados por los usuarios
+router.get('/admin/ingredientes-mas-usados', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { rango } = req.query; // "diario", "semanal", "mensual"
+  try {
+    const db = await connectToDatabase();
+    const rangoFechas = calcularRangoFechas(rango);
+
+    const ingredientesMasUsados = await db.collection('ingredientesUsados').aggregate([
+      { $match: { fecha: { $gte: rangoFechas.startDate, $lte: rangoFechas.endDate } } }, // Filtrar por rango de fechas
+      {
+        $group: {
+          _id: '$nombre', // Agrupar por nombre de ingrediente
+          totalCantidad: { $sum: '$cantidad' } // Sumar las cantidades
+        }
+      },
+      { $sort: { totalCantidad: -1 } }, // Ordenar de mayor a menor
+      { $limit: 10 } // Limitar a los 10 más usados
+    ]).toArray();
+
+    res.status(200).json(ingredientesMasUsados);
+  } catch (error) {
+    console.error('Error al obtener ingredientes más usados:', error.message);
+    res.status(500).json({ message: 'Error al obtener ingredientes más usados.', error: error.message });
+  }
+});
+
+// Obtener la cantidad de usuarios activos por rango de tiempo
+router.get('/admin/usuarios-activos', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { rango } = req.query; // "diario", "semanal", "mensual"
+  try {
+    const db = await connectToDatabase();
+    const rangoFechas = calcularRangoFechas(rango);
+
+    const usuariosActivos = await db.collection('actividades').aggregate([
+      { $match: { fecha: { $gte: rangoFechas.startDate, $lte: rangoFechas.endDate } } }, // Filtrar por rango de fechas
+      { $group: { _id: '$usuarioId' } }, // Agrupar por usuarioId
+      { $count: 'usuariosActivos' } // Contar usuarios únicos
+    ]).toArray();
+
+    res.status(200).json({
+      rango,
+      usuariosActivos: usuariosActivos[0]?.usuariosActivos || 0
+    });
+  } catch (error) {
+    console.error('Error al obtener usuarios activos:', error.message);
+    res.status(500).json({ message: 'Error al obtener usuarios activos.', error: error.message });
+  }
+});
+
+// ==========================================
+// Función auxiliar para calcular rangos de fechas
+// ==========================================
+function calcularRangoFechas(rango) {
+  const ahora = new Date();
+  const rangoFechas = {};
+
+  if (rango === 'diario') {
+    rangoFechas.startDate = new Date(ahora.setHours(0, 0, 0, 0)); // Inicio del día
+    rangoFechas.endDate = new Date(ahora.setHours(23, 59, 59, 999)); // Fin del día
+  } else if (rango === 'semanal') {
+    const startOfWeek = new Date(ahora.setDate(ahora.getDate() - ahora.getDay())); // Inicio de la semana
+    rangoFechas.startDate = new Date(startOfWeek.setHours(0, 0, 0, 0));
+    rangoFechas.endDate = new Date(ahora.setHours(23, 59, 59, 999));
+  } else if (rango === 'mensual') {
+    rangoFechas.startDate = new Date(ahora.getFullYear(), ahora.getMonth(), 1); // Inicio del mes
+    rangoFechas.endDate = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0); // Fin del mes
+  } else {
+    throw new Error('Rango no válido');
+  }
+
+  return rangoFechas;
+}
 module.exports = router;

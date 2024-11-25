@@ -12,7 +12,11 @@ const UserSchema = {
     height: Number,  // Altura en cm
     imc: Number,     // IMC calculado
     dietRecommendation: String, // Recomendación de dieta
-  }
+  },
+  fechaRegistro: {
+    type: Date,      // Fecha de registro
+    default: new Date(), // Valor por defecto: fecha actual
+  },
 };
 
 // Función para hashear la contraseña

@@ -21,8 +21,6 @@ const { getNoticias } = require('./models/newsService');
 const path = require('path');
 const { crearNotificacion, obtenerNotificaciones } = require('./models/Notificaciones');
 const cron = require('node-cron');
-const http = require('http'); // Para crear un servidor HTTP
-const { Server } = require('socket.io'); // Importar socket.io
 const Actividades = require('./models/Actividades'); // Modelo de actividades
 require('dotenv').config();
 
@@ -32,9 +30,6 @@ dotenv.config();
 // Inicializar la aplicación Express
 const app = express();
 app.use(express.json());
-
-const server = http.createServer(app); // Crear un servidor HTTP
-const io = new Server(server); // Vincular socket.io al servidor HTTP
 
 // Usar Helmet para aumentar la seguridad agregando encabezados HTTP seguros
 app.use(helmet());
@@ -226,7 +221,8 @@ app.use((err, req, res, next) => {
       password: hashedPassword, 
       diet: diet || null,       // Si se proporciona, asignar; si no, null
       allergies: allergies || [], // Asignar alergias si se proporcionan, o una lista vacía
-      role: role || 'user'  // Asignar rol, por defecto 'user'
+      role: role || 'user',  // Asignar rol, por defecto 'user'
+      fechaRegistro: new Date() // Agregar la fecha y hora actual
     }; // Crear el nuevo usuario con la contraseña hasheada
 
     await usersCollection.insertOne(nuevoUsuario); // Insertar el nuevo usuario en la base de datos
@@ -234,7 +230,7 @@ app.use((err, req, res, next) => {
     // Enviar respuesta sin incluir la contraseña
     res.status(201).json({ 
       message: 'Usuario registrado', 
-      usuario: { nombre: nuevoUsuario.nombre, email: nuevoUsuario.email }
+      usuario: { nombre: nuevoUsuario.nombre, email: nuevoUsuario.email, fechaRegistro: nuevoUsuario.fechaRegistro  }
     });
   });
 
@@ -1026,6 +1022,7 @@ app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => 
 
     let faltanIngredientes = [];
     let ingredientesParaDescontar = [];
+    let ingredientesUsados = []; // Nuevo arreglo para registrar los ingredientes usados
 
     for (const ingredienteReceta of ingredientesReceta) {
       const nombreTraducido = await convertirIngredienteAEspanol(ingredienteReceta.name.toLowerCase());
@@ -1046,6 +1043,12 @@ app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => 
         });
       } else {
         ingredientesParaDescontar.push({
+          nombre: nombreTraducido,
+          cantidad: cantidadEnGramos
+        });
+
+        // Agregar a los ingredientes usados
+        ingredientesUsados.push({
           nombre: nombreTraducido,
           cantidad: cantidadEnGramos
         });
@@ -1074,7 +1077,17 @@ app.post('/preparar-receta-spoonacular', authenticateToken, async (req, res) => 
       );
     }
 
-    res.status(200).json({ message: 'Ingredientes descontados correctamente', compraNecesaria: false });
+    // Registrar los ingredientes usados en la colección "ingredientesUsados"
+    const registrosUsados = ingredientesUsados.map(ing => ({
+      nombre: ing.nombre,
+      cantidad: ing.cantidad,
+      usuarioId,
+      recipeId: new ObjectId(recipeId),
+      fecha: new Date()
+    }));
+    await db.collection('ingredientesUsados').insertMany(registrosUsados);
+
+    res.status(200).json({ message: 'Ingredientes descontados y uso registrado correctamente.', compraNecesaria: false });
   } catch (error) {
     console.error('Error al preparar la receta:', error.message);
     res.status(500).json({ error: `Error al preparar la receta: ${error.message}` });
@@ -1618,6 +1631,7 @@ app.post('/actividades', async (req, res) => {
 });
 
 //=============================Visualizar datos específicos (diarios, semanales, mensuales)===================
+//ACTIVIDAD DE USUARIOS (DIARIOS - SEMANAL - MENSUAL)
 app.get('/actividades', async (req, res) => {
   const { rango } = req.query;
 
@@ -1650,6 +1664,87 @@ app.get('/actividades', async (req, res) => {
   } catch (error) {
     console.error('Error al obtener actividades:', error);
     res.status(500).json({ message: 'Error al obtener actividades', error: error.message });
+  }
+});
+
+
+//NUEVOS USUARIOS REGISTRADOS (DIARIO - SEMANAL - MENSUAL)
+// Ruta para obtener el conteo de usuarios registrados por rango de fechas
+app.get('/usuarios/registrados', async (req, res) => {
+  const { rango } = req.query; // "diario", "semanal", "mensual"
+
+  try {
+    const db = await connectToDatabase();
+    const usersCollection = db.collection('usuarios');
+
+    const rangoFechas = {};
+    const ahora = new Date();
+
+    if (rango === 'diario') {
+      rangoFechas.startDate = new Date(ahora.setHours(0, 0, 0, 0)); // Inicio del día
+      rangoFechas.endDate = new Date(ahora.setHours(23, 59, 59, 999)); // Fin del día
+    } else if (rango === 'semanal') {
+      const startOfWeek = new Date(ahora.setDate(ahora.getDate() - ahora.getDay())); // Inicio de la semana
+      rangoFechas.startDate = new Date(startOfWeek.setHours(0, 0, 0, 0));
+      rangoFechas.endDate = new Date(ahora.setHours(23, 59, 59, 999));
+    } else if (rango === 'mensual') {
+      rangoFechas.startDate = new Date(ahora.getFullYear(), ahora.getMonth(), 1); // Inicio del mes
+      rangoFechas.endDate = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0); // Fin del mes
+    } else {
+      return res.status(400).json({ message: 'El rango proporcionado no es válido' });
+    }
+
+    // Consultar usuarios registrados en el rango de fechas
+    const usuarios = await usersCollection.find({
+      fechaRegistro: { $gte: rangoFechas.startDate, $lte: rangoFechas.endDate }
+    }).toArray();
+
+    res.status(200).json({ total: usuarios.length, usuarios });
+  } catch (error) {
+    console.error('Error al obtener usuarios registrados:', error);
+    res.status(500).json({ message: 'Error al obtener usuarios registrados', error: error.message });
+  }
+});
+
+//CONTABILIZAR INGREDIENTES MÁS INGRESADOS AL ALMACEN DE LOS USUARIOS (DIARIO - SEMANAL - MENSUAL)
+app.get('/admin/ingredientes-mas-almacenados', authenticateToken, checkRole('admin'), async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+
+    const ingredientesMasAlmacenados = await db.collection('almacen').aggregate([
+      { $unwind: '$ingredientes' }, // Descomponer el array de ingredientes
+      {
+        $group: {
+          _id: '$ingredientes.nombre', // Agrupar por nombre de ingrediente
+          totalCantidad: { $sum: '$ingredientes.cantidad' } // Sumar las cantidades
+        }
+      },
+      { $sort: { totalCantidad: -1 } }, // Ordenar de mayor a menor
+      { $limit: 10 } // Limitar a los 10 más almacenados
+    ]).toArray();
+
+    res.status(200).json(ingredientesMasAlmacenados);
+  } catch (error) {
+    console.error('Error al obtener ingredientes más almacenados:', error.message);
+    res.status(500).json({ message: 'Error al obtener ingredientes más almacenados.' });
+  }
+});
+
+//CONTABILIZAR INGREDIENTES MÁS USADOS POR LOS USUARIOS (DIARIO - SEMANAL - MENSUAL)
+app.get('/admin/ingredientes-mas-usados', authenticateToken, checkRole('admin'), async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+
+    const ingredientesMasUsados = await db.collection('ingredientesUsados').aggregate([
+      { $group: { _id: '$nombre', totalCantidad: { $sum: '$cantidad' } } }, // Agrupar por nombre y sumar cantidades
+      { $sort: { totalCantidad: -1 } }, // Ordenar de mayor a menor
+      { $limit: 10 } // Limitar a los 10 más usados
+    ]).toArray();
+
+    res.status(200).json(ingredientesMasUsados);
+  } catch (error) {
+    console.error('Error al obtener ingredientes más usados:', error.message);
+    res.status(500).json({ message: 'Error al obtener ingredientes más usados.' });
   }
 });
 
