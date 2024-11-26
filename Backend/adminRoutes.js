@@ -412,18 +412,18 @@ router.delete('/categorias/:id', authenticateToken, checkRole('admin'), async (r
 
 // Ruta para agregar un nuevo ingrediente (asociado a una categoría, con notificación)
 router.post('/ingredientes', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
-  const { nombre, categoria } = req.body;
+  const { nombre } = req.body;
   const imagen = req.file ? req.file.path : null;
 
-  if (!nombre || !categoria) {
-    return res.status(400).json({ message: 'El nombre y la categoría son obligatorios' });
+  if (!nombre) {
+    return res.status(400).json({ message: 'El nombre es obligatorio' });
   }
 
   try {
     await client.connect();
     const db = client.db('chefencasa');
     const ingredientesCollection = db.collection('ingredientes');
-    const notificacionesCollection = db.collection('notificaciones');  // Colección de notificaciones
+    const notificacionesCollection = db.collection('notificaciones'); // Colección de notificaciones
 
     // Verificar si el ingrediente ya existe
     const ingredienteExistente = await ingredientesCollection.findOne({ nombre });
@@ -431,17 +431,9 @@ router.post('/ingredientes', authenticateToken, checkRole('admin'), upload.singl
       return res.status(400).json({ message: 'El ingrediente ya existe' });
     }
 
-    // Verificar si la categoría existe
-    const categoriasCollection = db.collection('categorias');
-    const categoriaExistente = await categoriasCollection.findOne({ nombre: categoria });
-    if (!categoriaExistente) {
-      return res.status(400).json({ message: 'La categoría no existe' });
-    }
-
     // Crear el nuevo ingrediente
     const nuevoIngrediente = {
       nombre,
-      categoria,
       imagen,
       fechaCreacion: new Date(),
     };
@@ -509,10 +501,10 @@ router.get('/ingredientes/:id', authenticateToken, async (req, res) => {
 // Actualizar un ingrediente por ID
 router.put('/ingredientes/:id', authenticateToken, checkRole('admin'), async (req, res) => {
   const { id } = req.params;
-  const { nombre, categoria, imagen } = req.body;
+  const { nombre, imagen } = req.body;
 
-  if (!nombre || !categoria) {
-    return res.status(400).json({ message: 'Nombre y categoría son obligatorios' });
+  if (!nombre) {
+    return res.status(400).json({ message: 'El nombre es obligatorio' });
   }
 
   try {
@@ -522,7 +514,7 @@ router.put('/ingredientes/:id', authenticateToken, checkRole('admin'), async (re
 
     const resultado = await ingredientesCollection.updateOne(
       { _id: new ObjectId(id) },
-      { $set: { nombre, categoria, imagen: imagen || null } }
+      { $set: { nombre, imagen: imagen || null } }
     );
 
     if (resultado.matchedCount === 0) {
