@@ -1,59 +1,129 @@
-import React, { useEffect, useState } from 'react';
-import { Pie } from 'react-chartjs-2';
-import { getIngredientRankings } from '../../services/dashboardService';
+import React, { useState, useEffect } from 'react';
+import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
-  ArcElement,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
   Tooltip,
-  Legend
+  Legend,
 } from 'chart.js';
+import { getIngredientesMasUsados } from '../../services/dashboardService'; // Asegúrate de que esta función esté correctamente implementada
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const RankingIngredientes = () => {
-  const [data, setData] = useState({ labels: [], datasets: [] });
-  const [period, setPeriod] = useState('daily'); // Controla si es diario o mensual
+  const [chartData, setChartData] = useState(null); // Estado para los datos del gráfico
+  const [loading, setLoading] = useState(true); // Indicador de carga
+  const [period, setPeriod] = useState('diario'); // Control del período (diario, semanal, mensual)
 
+  // Cargar los datos desde el backend
   useEffect(() => {
     const fetchData = async () => {
-      const ingredientRankings = await getIngredientRankings(period); // Llama los datos según el periodo
-      setData({
-        labels: ingredientRankings.labels,
-        datasets: [
-          {
-            data: ingredientRankings.data,
-            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
-            hoverBackgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
-          },
-        ],
-      });
+      setLoading(true); // Inicia la carga de datos
+      try {
+        // Aquí cambiamos la función para llamar a "getIngredientesMasUsados"
+        const response = await getIngredientesMasUsados(period);
+        
+        // Procesamos los datos que vienen del backend
+        const labels = response.map((item) => item._id); // Ingredientes
+        const data = response.map((item) => item.totalCantidad); // Cantidad total usada
+
+        // Actualizamos el estado de chartData para los gráficos
+        setChartData({
+          labels,
+          datasets: [
+            {
+              label: 'Cantidad Usada',
+              data,
+              backgroundColor: 'rgba(75, 192, 192, 0.6)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 1,
+            },
+          ],
+        });
+      } catch (error) {
+        console.error('Error al cargar datos del gráfico:', error);
+        setChartData(null); // Asegúrate de que el gráfico no intente renderizar sin datos
+      } finally {
+        setLoading(false); // Finaliza el estado de carga
+      }
     };
-    fetchData();
-  }, [period]);
+
+    fetchData(); // Llama a la función para obtener los datos
+  }, [period]); // Se ejecuta cada vez que cambia el 'period'
+
+  // Configuración del gráfico
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'Ranking de Ingredientes Más Usados',
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Cantidad Usada',
+        },
+        ticks: {
+          // Aquí agregamos más configuraciones para el eje Y
+          stepSize: 20, // Ajusta el tamaño de los pasos del eje Y
+          min: 0, // Asegúrate de que comience en 0
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Ingredientes',
+        },
+      },
+    },
+  };
 
   return (
     <div className="flex flex-col items-center">
       <h2 className="text-xl font-semibold mb-4">Ranking de Ingredientes Más Usados</h2>
 
-      {/* Botones para cambiar entre Diario y Mensual */}
+      {/* Botones para seleccionar el periodo */}
       <div className="flex space-x-4 mb-4">
-        <button 
-          className={`px-4 py-2 rounded ${period === 'daily' ? 'bg-green-500 text-white' : 'bg-gray-200 text-black'}`} 
-          onClick={() => setPeriod('daily')}
+        <button
+          className={`px-4 py-2 rounded ${period === 'diario' ? 'bg-green-500 text-white' : 'bg-gray-200 text-black'}`}
+          onClick={() => setPeriod('diario')}
         >
           Diario
         </button>
-        <button 
-          className={`px-4 py-2 rounded ${period === 'monthly' ? 'bg-green-500 text-white' : 'bg-gray-200 text-black'}`} 
-          onClick={() => setPeriod('monthly')}
+        <button
+          className={`px-4 py-2 rounded ${period === 'semanal' ? 'bg-green-500 text-white' : 'bg-gray-200 text-black'}`}
+          onClick={() => setPeriod('semanal')}
+        >
+          Semanal
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${period === 'mensual' ? 'bg-green-500 text-white' : 'bg-gray-200 text-black'}`}
+          onClick={() => setPeriod('mensual')}
         >
           Mensual
         </button>
       </div>
 
-      <div className="w-full max-w-xs sm:max-w-md lg:max-w-lg">
-        <Pie data={data} />
-      </div>
+      {/* Mostrar el gráfico o un mensaje de carga */}
+      {loading ? (
+        <p>Cargando datos...</p>
+      ) : chartData ? (
+        <div className="w-full max-w-2xl">
+          <Bar data={chartData} options={options} />
+        </div>
+      ) : (
+        <p>Error al cargar datos del gráfico</p>
+      )}
     </div>
   );
 };

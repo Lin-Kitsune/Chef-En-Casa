@@ -257,6 +257,11 @@ app.use((err, req, res, next) => {
     // Generar el token JWT
     const token = jwt.sign({ id: usuario._id, email: usuario.email, role: usuario.role }, JWT_SECRET, { expiresIn: '1h' });
 
+    // Registrar la actividad de inicio de sesión
+    const db = await connectToDatabase();
+    const actividades = new Actividades(db);
+    await actividades.registrarActividad(usuario._id, 'login', 'Inicio de sesión exitoso');
+
     // Enviar el token de respuesta
     res.status(200).json({ message: 'Login exitoso', token });
   });
