@@ -412,18 +412,18 @@ router.delete('/categorias/:id', authenticateToken, checkRole('admin'), async (r
 
 // Ruta para agregar un nuevo ingrediente (asociado a una categoría, con notificación)
 router.post('/ingredientes', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
-  const { nombre, categoria } = req.body;
+  const { nombre } = req.body;
   const imagen = req.file ? req.file.path : null;
 
-  if (!nombre || !categoria) {
-    return res.status(400).json({ message: 'El nombre y la categoría son obligatorios' });
+  if (!nombre) {
+    return res.status(400).json({ message: 'El nombre es obligatorio' });
   }
 
   try {
     await client.connect();
     const db = client.db('chefencasa');
     const ingredientesCollection = db.collection('ingredientes');
-    const notificacionesCollection = db.collection('notificaciones');  // Colección de notificaciones
+    const notificacionesCollection = db.collection('notificaciones'); // Colección de notificaciones
 
     // Verificar si el ingrediente ya existe
     const ingredienteExistente = await ingredientesCollection.findOne({ nombre });
@@ -431,17 +431,9 @@ router.post('/ingredientes', authenticateToken, checkRole('admin'), upload.singl
       return res.status(400).json({ message: 'El ingrediente ya existe' });
     }
 
-    // Verificar si la categoría existe
-    const categoriasCollection = db.collection('categorias');
-    const categoriaExistente = await categoriasCollection.findOne({ nombre: categoria });
-    if (!categoriaExistente) {
-      return res.status(400).json({ message: 'La categoría no existe' });
-    }
-
     // Crear el nuevo ingrediente
     const nuevoIngrediente = {
       nombre,
-      categoria,
       imagen,
       fechaCreacion: new Date(),
     };
@@ -509,10 +501,10 @@ router.get('/ingredientes/:id', authenticateToken, async (req, res) => {
 // Actualizar un ingrediente por ID
 router.put('/ingredientes/:id', authenticateToken, checkRole('admin'), async (req, res) => {
   const { id } = req.params;
-  const { nombre, categoria, imagen } = req.body;
+  const { nombre, imagen } = req.body;
 
-  if (!nombre || !categoria) {
-    return res.status(400).json({ message: 'Nombre y categoría son obligatorios' });
+  if (!nombre) {
+    return res.status(400).json({ message: 'El nombre es obligatorio' });
   }
 
   try {
@@ -522,7 +514,7 @@ router.put('/ingredientes/:id', authenticateToken, checkRole('admin'), async (re
 
     const resultado = await ingredientesCollection.updateOne(
       { _id: new ObjectId(id) },
-      { $set: { nombre, categoria, imagen: imagen || null } }
+      { $set: { nombre, imagen: imagen || null } }
     );
 
     if (resultado.matchedCount === 0) {
@@ -567,34 +559,68 @@ router.delete('/ingredientes/:id', authenticateToken, checkRole('admin'), async 
 
 // Crear una receta con notificación
 router.post('/recetas', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
-  const { titulo, duracion, ingredientes, porciones, paso, valoracion } = req.body;
+  const { titulo, duracion, ingredientes, porciones, paso, valoracion, dishTypes, nutrition } = req.body;
   const imagen = req.file ? req.file.path : null;
 
+  // Validar campos obligatorios
   if (!titulo || !duracion || !ingredientes || !paso) {
     return res.status(400).json({ message: 'Todos los campos obligatorios deben ser completados' });
   }
 
   try {
+    // Validar y convertir datos recibidos
+    let ingredientesArray = [];
+    let pasosFinal = [];
+    let dishTypesArray = [];
+    let nutritionData = {};
+
+    try {
+      ingredientesArray = JSON.parse(ingredientes);
+      pasosFinal = JSON.parse(paso);
+      dishTypesArray = dishTypes ? JSON.parse(dishTypes) : [];
+      nutritionData = nutrition ? JSON.parse(nutrition) : {};
+    } catch (err) {
+      return res.status(400).json({ 
+        message: 'Error en el formato de los datos enviados',
+        error: err.message,
+      });
+    }
+
+    // Validar que ingredientes y pasos no estén vacíos
+    if (!ingredientesArray.length || !pasosFinal.length) {
+      return res.status(400).json({
+        message: 'Los campos de ingredientes y pasos no pueden estar vacíos',
+      });
+    }
+
     await client.connect();
     const db = client.db('chefencasa');
     const ingredientesCollection = db.collection('ingredientes');
     const recetasCollection = db.collection('recetas');
     const notificacionesCollection = db.collection('notificaciones'); // Colección de notificaciones
 
-    // Verificar que todos los ingredientes existen en la base de datos
-    const ingredientesArray = JSON.parse(ingredientes); // Convertir el JSON de ingredientes en un array
-    const ingredientesValidos = await ingredientesCollection.find({ nombre: { $in: ingredientesArray.map(i => i.nombre) } }).toArray();
+    // Validar que todos los ingredientes existen en la base de datos
+    const ingredientesValidos = await ingredientesCollection.find({
+      nombre: { $in: ingredientesArray.map(i => i.nombre) }
+    }).toArray();
 
     if (ingredientesValidos.length !== ingredientesArray.length) {
-      return res.status(400).json({ message: 'Uno o más ingredientes no existen en la base de datos' });
+      const ingredientesInvalidos = ingredientesArray.filter(
+        i => !ingredientesValidos.find(iv => iv.nombre === i.nombre)
+      );
+      return res.status(400).json({
+        message: 'Uno o más ingredientes no existen en la base de datos',
+        detalles: ingredientesInvalidos.map(i => i.nombre),
+      });
     }
 
     // Formatear ingredientes con la cantidad
     const ingredientesFinal = ingredientesArray.map(i => {
       const ingredienteValido = ingredientesValidos.find(iv => iv.nombre === i.nombre);
       return {
+        id: ingredienteValido._id, // Asociar el ID del ingrediente
         nombre: ingredienteValido.nombre,
-        cantidad: i.cantidad
+        cantidad: i.cantidad,
       };
     });
 
@@ -602,30 +628,39 @@ router.post('/recetas', authenticateToken, checkRole('admin'), upload.single('im
     const nuevaReceta = {
       titulo,
       duracion: Number(duracion),
-      valoracion: valoracion ? Number(valoracion) : 0,  // Valoración predeterminada en 0 si no se especifica
-      porciones: porciones ? Number(porciones) : 0,  // Porciones predeterminadas en 0 si no se especifica
+      valoracion: valoracion ? Number(valoracion) : 0,
+      porciones: porciones ? Number(porciones) : 0,
       ingredientes: ingredientesFinal,
+      pasos: pasosFinal,
+      dishTypes: dishTypesArray,
+      nutrition: nutritionData,
       imagen,
-      paso: paso,
       fechaCreacion: new Date(),
     };
 
-    // Guardar la nueva receta en la base de datos
-    await recetasCollection.insertOne(nuevaReceta);
+    // Guardar en la base de datos
+    const resultado = await recetasCollection.insertOne(nuevaReceta);
 
-    // Crear una notificación para informar a los usuarios
+    // Crear una notificación
     const notificacion = {
       mensaje: `Nueva receta agregada: ${titulo}`,
       tipo: 'receta',
       fecha: new Date(),
-      visto: false // Este campo indica si la notificación ha sido vista por el usuario
+      visto: false,
     };
     await notificacionesCollection.insertOne(notificacion);
 
-    res.status(201).json({ message: 'Receta creada y notificación generada', receta: nuevaReceta });
+    res.status(201).json({
+      message: 'Receta creada y notificación generada',
+      receta: nuevaReceta,
+      recetaId: resultado.insertedId,
+    });
   } catch (error) {
     console.error('Error al crear receta:', error);
-    res.status(500).json({ message: 'Error al crear receta', error: error.message });
+    res.status(500).json({ 
+      message: 'Error al crear receta',
+      error: error.message,
+    });
   } finally {
     await client.close();
   }
@@ -674,9 +709,10 @@ router.get('/recetas/:id', authenticateToken, async (req, res) => {
 // Actualizar una receta
 router.put('/recetas/:id', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
   const { id } = req.params;
-  const { titulo, duracion, ingredientes, porciones, paso, valoracion } = req.body;
+  const { titulo, duracion, ingredientes, porciones, paso, valoracion, dishTypes, nutrition } = req.body;
   const imagen = req.file ? req.file.path : null;
 
+  // Validar campos obligatorios
   if (!titulo || !duracion || !ingredientes || !paso) {
     return res.status(400).json({ message: 'Todos los campos obligatorios deben ser completados' });
   }
@@ -687,31 +723,75 @@ router.put('/recetas/:id', authenticateToken, checkRole('admin'), upload.single(
     const recetasCollection = db.collection('recetas');
     const ingredientesCollection = db.collection('ingredientes');
 
-    // Verificar que los ingredientes existen en la base de datos
-    const ingredientesArray = JSON.parse(ingredientes);
-    const ingredientesValidos = await ingredientesCollection.find({ nombre: { $in: ingredientesArray.map(i => i.nombre) } }).toArray();
+    // Validar y procesar datos recibidos
+    let ingredientesArray = [];
+    let pasosFinal = [];
+    let dishTypesArray = [];
+    let nutritionData = {};
 
-    if (ingredientesValidos.length !== ingredientesArray.length) {
-      return res.status(400).json({ message: 'Uno o más ingredientes no existen en la base de datos' });
+    try {
+      ingredientesArray = JSON.parse(ingredientes);
+      pasosFinal = JSON.parse(paso);
+      dishTypesArray = dishTypes ? JSON.parse(dishTypes) : [];
+      nutritionData = nutrition ? JSON.parse(nutrition) : {};
+    } catch (err) {
+      return res.status(400).json({ 
+        message: 'Error en el formato de los datos enviados',
+        error: err.message,
+      });
     }
 
+    // Validar que los arrays no estén vacíos
+    if (!ingredientesArray.length || !pasosFinal.length) {
+      return res.status(400).json({ message: 'Los campos de ingredientes y pasos no pueden estar vacíos' });
+    }
+
+    // Validar ingredientes existentes en la base de datos
+    const ingredientesValidos = await ingredientesCollection.find({
+      nombre: { $in: ingredientesArray.map((i) => i.nombre) },
+    }).toArray();
+
+    if (ingredientesValidos.length !== ingredientesArray.length) {
+      const ingredientesInvalidos = ingredientesArray.filter(
+        (i) => !ingredientesValidos.find((iv) => iv.nombre === i.nombre)
+      );
+      return res.status(400).json({
+        message: 'Uno o más ingredientes no existen en la base de datos',
+        detalles: ingredientesInvalidos.map((i) => i.nombre),
+      });
+    }
+
+    // Formatear ingredientes con los datos correctos
+    const ingredientesFinal = ingredientesArray.map((i) => {
+      const ingredienteValido = ingredientesValidos.find((iv) => iv.nombre === i.nombre);
+      return {
+        id: ingredienteValido._id,
+        nombre: ingredienteValido.nombre,
+        cantidad: i.cantidad,
+      };
+    });
+
+    // Construir el objeto actualizado de la receta
     const recetaActualizada = {
       titulo,
       duracion: Number(duracion),
       valoracion: valoracion ? Number(valoracion) : 0,
       porciones: porciones ? Number(porciones) : 0,
-      ingredientes: ingredientesArray,
-      imagen: imagen || req.body.imagenAnterior,  // Mantener la imagen anterior si no se envía una nueva
-      paso: paso,
+      ingredientes: ingredientesFinal,
+      pasos: pasosFinal,
+      dishTypes: dishTypesArray,
+      nutrition: nutritionData,
+      imagen: imagen || req.body.imagenAnterior, // Usar la imagen anterior si no se envió una nueva
     };
 
+    // Actualizar la receta en la base de datos
     const result = await recetasCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: recetaActualizada }
     );
 
-    if (result.modifiedCount === 0) {
-      return res.status(404).json({ message: 'Receta no encontrada o sin cambios' });
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'Receta no encontrada' });
     }
 
     res.status(200).json({ message: 'Receta actualizada con éxito', receta: recetaActualizada });

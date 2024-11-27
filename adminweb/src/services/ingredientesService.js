@@ -17,50 +17,40 @@ export const getAllIngredientes = async () => {
 };
 
 export const createIngrediente = async (ingredienteData) => {
-    try {
-      const token = await getToken();
-      const formData = new FormData();
-      formData.append('nombre', ingredienteData.nombre);
-      formData.append('categoria', ingredienteData.categoria);
-  
-      if (ingredienteData.imagen) {
-        formData.append('imagen', ingredienteData.imagen);
-      }
-  
-      // Agrega un console.log para verificar el contenido de formData
-      for (const [key, value] of formData.entries()) {
-        console.log(key, value);
-      }
-  
-      const response = await axios.post(`${API_URL}`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-       // Solo extrae la notificación desde la respuesta del backend
-      const { notificacion } = response.data;
+  try {
+    const token = await getToken();
+    const formData = new FormData();
+    formData.append('nombre', ingredienteData.nombre);
 
-      // Manejo de la notificación
-      if (notificacion) {
-        console.log("Notificación recibida:", notificacion.mensaje);  // Muestra en consola la notificación
-        alert(`Notificación: ${notificacion.mensaje}`);  // O muestra una alerta en la interfaz
-      }
-    
-      return response.data;
-    } catch (error) {
-      console.error('Error al agregar ingrediente:', error.response || error.message);
-      throw error;
+    if (ingredienteData.imagen) {
+      formData.append('imagen', ingredienteData.imagen);
     }
-  };
-  
+
+    const response = await axios.post(`${API_URL}`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    const { notificacion } = response.data;
+
+    if (notificacion) {
+      alert(`Notificación: ${notificacion.mensaje}`);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Error al agregar ingrediente:', error.response || error.message);
+    throw error;
+  }
+};
 
 export const updateIngrediente = async (id, ingredienteData) => {
   try {
     const token = await getToken();
     const formData = new FormData();
     formData.append('nombre', ingredienteData.nombre);
-    formData.append('categoria', ingredienteData.categoria);
     if (ingredienteData.imagen) {
       formData.append('imagen', ingredienteData.imagen);
     }
@@ -71,6 +61,7 @@ export const updateIngrediente = async (id, ingredienteData) => {
         'Content-Type': 'multipart/form-data'
       }
     });
+
     return response.data;
   } catch (error) {
     console.error('Error al actualizar ingrediente:', error.response || error.message);

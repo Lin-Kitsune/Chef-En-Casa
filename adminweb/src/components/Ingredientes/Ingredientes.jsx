@@ -1,30 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faPlus, faFilter, faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faPlus,  faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { getAllIngredientes, createIngrediente, updateIngrediente, deleteIngrediente } from '../../services/ingredientesService'
-import { getAllCategorias, createCategoria } from '../../services/categoriasService';
+// import { getAllCategorias, createCategoria } from '../../services/categoriasService';
 import './Ingredientes.css';
 
 const IMAGE_PROXY_URL = 'http://localhost:4000/api/proxy-image';
 
 const Ingredientes = () => {
   const [ingredientes, setIngredientes] = useState([]);
-  const [categorias, setCategorias] = useState([]);
+  // const [categorias, setCategorias] = useState([]);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [addIngredientModalVisible, setAddIngredientModalVisible] = useState(false);
-  const [addCategoryModalVisible, setAddCategoryModalVisible] = useState(false);
+  // const [addCategoryModalVisible, setAddCategoryModalVisible] = useState(false);
   const [editIngredientModalVisible, setEditIngredientModalVisible] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState(null);
   const [classification, setClassification] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [newIngredient, setNewIngredient] = useState({ nombre: '', categoria: '', imagen: null });
-  const [newCategory, setNewCategory] = useState(''); // Nueva categoría
+  const [newIngredient, setNewIngredient] = useState({ nombre: '', imagen: null });
+  // const [newCategory, setNewCategory] = useState(''); 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
   useEffect(() => {
     fetchIngredientes();
-    fetchCategorias();
   }, []);
 
   // Función para cargar todos los ingredientes desde el backend
@@ -38,37 +37,37 @@ const Ingredientes = () => {
   };
 
    // Cargar categorías desde el backend
-   const fetchCategorias = async () => {
-    try {
-      const data = await getAllCategorias();
-      setCategorias(data);
-    } catch (error) {
-      console.error('Error al cargar categorías:', error);
-    }
-  };
+  //  const fetchCategorias = async () => {
+  //   try {
+  //     const data = await getAllCategorias();
+  //     setCategorias(data);
+  //   } catch (error) {
+  //     console.error('Error al cargar categorías:', error);
+  //   }
+  // };
 
-  const toggleAddCategoryModal = () => setAddCategoryModalVisible(!addCategoryModalVisible);
+  // const toggleAddCategoryModal = () => setAddCategoryModalVisible(!addCategoryModalVisible);
 
   // Agregar una nueva categoría y actualizar el selector
-  const handleAddCategory = async () => {
-    if (!newCategory) return;
-    try {
-      await createCategoria(newCategory);
-      setNewCategory(''); // Limpiar el campo de categoría
-      setAddCategoryModalVisible(false);
-      fetchCategorias(); // Actualizar lista de categorías
-    } catch (error) {
-      console.error('Error al agregar categoría:', error);
-    }
-  };
+  // const handleAddCategory = async () => {
+  //   if (!newCategory) return;
+  //   try {
+  //     await createCategoria(newCategory);
+  //     setNewCategory(''); // Limpiar el campo de categoría
+  //     setAddCategoryModalVisible(false);
+  //     fetchCategorias(); // Actualizar lista de categorías
+  //   } catch (error) {
+  //     console.error('Error al agregar categoría:', error);
+  //   }
+  // };
 
   // Función para manejar la adición de un nuevo ingrediente
   const handleAddIngredient = async () => {
     try {
       await createIngrediente(newIngredient);
       setAddIngredientModalVisible(false);
-      setNewIngredient({ nombre: '', categoria: '', imagen: null });
-      fetchIngredientes(); // Recargar la lista de ingredientes
+      setNewIngredient({ nombre: '', imagen: null });
+      fetchIngredientes();
     } catch (error) {
       console.error('Error al agregar ingrediente:', error);
     }
@@ -80,12 +79,11 @@ const handleUpdateIngredient = async () => {
     await updateIngrediente(selectedIngredient._id, selectedIngredient);
     setEditIngredientModalVisible(false);
     setSelectedIngredient(null);
-    fetchIngredientes(); // Recargar la lista de ingredientes
+    fetchIngredientes();
   } catch (error) {
     console.error('Error al actualizar ingrediente:', error);
   }
 };
-
 
   // Función para eliminar un ingrediente
   const handleDeleteIngredient = async (id) => {
@@ -114,9 +112,9 @@ const handleUpdateIngredient = async () => {
                           (ingrediente.nombre && ingrediente.nombre.toLowerCase().includes(searchQuery.toLowerCase()));
   
     // Filtrar por categoría si se ha seleccionado una
-    const matchesCategory = classification ? ingrediente.categoria === classification : true;
+    // const matchesCategory = classification ? ingrediente.categoria === classification : true;
   
-    return matchesSearch && matchesCategory;
+    return matchesSearch ;
   });
   
   
@@ -155,13 +153,13 @@ const handleUpdateIngredient = async () => {
           <span>AGREGAR</span>
         </button>
 
-        <button
+        {/* <button
           onClick={toggleFilterModal}
           className="bg-verde-chef text-white py-2 px-6 rounded-full font-bold hover:bg-green-600 transition duration-300 flex items-center space-x-2"
         >
           <FontAwesomeIcon icon={faFilter} />
           <span>FILTRO</span>
-        </button>
+        </button> */}
       </div>
 
       {/* Grid de ingredientes */}
@@ -234,7 +232,7 @@ const handleUpdateIngredient = async () => {
               </div>
 
               {/* Selector de categoría con botón de agregar */}
-              <div>
+              {/* <div>
                 <label className="block mb-2 font-semibold">Categoría</label>
                 <div className="flex items-center space-x-2">
                   <select
@@ -254,7 +252,7 @@ const handleUpdateIngredient = async () => {
                     +
                   </button>
                 </div>
-              </div>
+              </div> */}
 
               {/* Imagen del ingrediente */}
               <div>
@@ -283,7 +281,7 @@ const handleUpdateIngredient = async () => {
       )}
 
       {/* Modal para agregar nueva categoría */}
-      {addCategoryModalVisible && (
+      {/* {addCategoryModalVisible && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-lg font-bold mb-4">Agregar Categoría</h2>
@@ -304,7 +302,7 @@ const handleUpdateIngredient = async () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Modal de editar ingrediente */}
       {editIngredientModalVisible && selectedIngredient && (
@@ -326,7 +324,7 @@ const handleUpdateIngredient = async () => {
               </div>
 
               {/* Categoría del ingrediente */}
-              <div>
+              {/* <div>
                 <label className="block mb-2 font-semibold">Categoría</label>
                 <select
                   className="w-full border border-gray-300 rounded-lg p-2"
@@ -341,7 +339,7 @@ const handleUpdateIngredient = async () => {
                   <option value="Carnes">Carnes</option>
                   <option value="Almacen">Almacén</option>
                 </select>
-              </div>
+              </div> */}
 
               {/* Imagen del ingrediente */}
               <div>
