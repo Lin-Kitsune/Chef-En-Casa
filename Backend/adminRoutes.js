@@ -1279,4 +1279,158 @@ function calcularRangoFechas(rango, mes, anio) {
   return rangoFechas;
 }
 
+//==============================SabiasQue==========================================
+// Crear un "Sabías Que"
+router.post('/sabias-que', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
+  const { titulo, descripcion, beneficio } = req.body;
+  const imagen = req.file ? req.file.path : null;
+
+  // Validar campos obligatorios
+  if (!titulo || !descripcion || !beneficio) {
+    return res.status(400).json({ message: 'Título, Descripción y Beneficio son obligatorios' });
+  }
+
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const sabiasQueModel = new SabiasQue(db); // Usamos un modelo específico para "Sabías Que"
+
+    // Crear el "Sabías Que"
+    const nuevoSabiasQue = {
+      titulo,
+      descripcion,
+      beneficio, // Solo el beneficio relacionado con la salud
+      imagen,
+      fechaCreacion: new Date(),
+    };
+
+    await sabiasQueModel.create(nuevoSabiasQue);
+
+    res.status(201).json({ message: 'Sabías Que creado exitosamente', sabiasQue: nuevoSabiasQue });
+  } catch (error) {
+    console.error('Error al crear Sabías Que:', error);
+    res.status(500).json({ message: 'Error al crear Sabías Que', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+// Obtener todos los "Sabías Que"
+router.get('/sabias-que', authenticateToken, async (req, res) => {
+  try {
+    await client.connect();
+    const db = client.db('chefencasa');
+    const sabiasQueModel = new SabiasQue(db);
+
+    const sabiasQueList = await sabiasQueModel.findAll();
+    res.status(200).json(sabiasQueList);
+  } catch (error) {
+    console.error('Error al obtener Sabías Que:', error);
+    res.status(500).json({ message: 'Error al obtener Sabías Que', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+// Obtener un "Sabías Que" por ID
+router.get('/sabias-que/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+
+    await client.connect();
+    const db = client.db('chefencasa');
+    const sabiasQueModel = new SabiasQue(db);
+
+    const sabiasQue = await sabiasQueModel.findById(id);
+    if (!sabiasQue) {
+      return res.status(404).json({ message: 'Sabías Que no encontrado' });
+    }
+
+    res.status(200).json(sabiasQue);
+  } catch (error) {
+    console.error('Error al obtener Sabías Que:', error);
+    res.status(500).json({ message: 'Error al obtener Sabías Que', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+// Actualizar un "Sabías Que" por ID
+router.put('/sabias-que/:id', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
+  const { id } = req.params;
+  const { titulo, descripcion, beneficio } = req.body;
+  const imagen = req.file ? req.file.path : null;
+
+  // Validar campos obligatorios
+  if (!titulo || !descripcion || !beneficio) {
+    return res.status(400).json({ message: 'Título, Descripción y Beneficio son obligatorios' });
+  }
+
+  try {
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+
+    await client.connect();
+    const db = client.db('chefencasa');
+    const sabiasQueModel = new SabiasQue(db);
+
+    const updateData = {
+      titulo,
+      descripcion,
+      beneficio, // Solo el beneficio relacionado con la salud
+      ...(imagen && { imagen }), // Solo incluir imagen si existe
+    };
+
+    const result = await sabiasQueModel.update(id, updateData);
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Sabías Que no encontrado o sin cambios' });
+    }
+
+    res.status(200).json({ message: 'Sabías Que actualizado exitosamente' });
+  } catch (error) {
+    console.error('Error al actualizar Sabías Que:', error);
+    res.status(500).json({ message: 'Error al actualizar Sabías Que', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
+// Eliminar un "Sabías Que" por ID
+router.delete('/sabias-que/:id', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Validar si el ID es válido
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+
+    // Conexión directa a la base de datos
+    const db = client.db('chefencasa');  // Usa tu cliente global 'client' que está conectado
+    const sabiasQueModel = new SabiasQue(db);  // Instanciamos el modelo con la base de datos
+
+    // Intentar eliminar el "Sabías Que"
+    const result = await sabiasQueModel.delete(id);
+
+    // Verificar si el "Sabías Que" fue encontrado y eliminado
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Sabías Que no encontrado' });
+    }
+
+    // Respuesta exitosa
+    res.status(200).json({ message: 'Sabías Que eliminado exitosamente' });
+  } catch (error) {
+    // Manejo de errores
+    console.error('Error al eliminar Sabías Que:', error);
+    res.status(500).json({ message: 'Error al eliminar Sabías Que', error: error.message });
+  }
+});
+
+
 module.exports = router;
