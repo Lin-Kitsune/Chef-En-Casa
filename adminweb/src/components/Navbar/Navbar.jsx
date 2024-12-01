@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserCircle, faSignOutAlt  } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from 'react-router-dom';
+import { faUserCircle, faSignOutAlt,faHome  } from '@fortawesome/free-solid-svg-icons';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false); // Estado para controlar el menú desplegable
@@ -14,16 +14,20 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-amarillo-chef w-[90%] h-14 flex items-center justify-between px-8 rounded-full shadow-lg fixed top-4 left-1/2 transform -translate-x-1/2 z-[100]">
+    <nav className="bg-gradient-to-r from-[#00a651] to-[#8dc63f] w-[90%] h-14 flex items-center justify-between px-8 rounded-full shadow-lg fixed top-4 left-1/2 transform -translate-x-1/2 z-[100]">
       <div className="navbar-content flex items-center justify-between w-full">
-        {/* Título HOME */}
-        <h1 className="text-xl lg:text-2xl font-bold text-black tracking-wide">HOME</h1>
-
+        {/* Título HOME con Ícono */}
+        <div className="flex items-center space-x-2">
+          <Link to="/" className="text-white text-2xl">
+            <FontAwesomeIcon icon={faHome} className="cursor-pointer" />
+          </Link>
+          <h1 className="text-xl lg:text-2xl font-bold text-white tracking-wide">HOME</h1>
+        </div>
         {/* Ícono de usuario */}
         <div className="relative">
           <FontAwesomeIcon
             icon={faUserCircle}
-            className="text-black text-3xl cursor-pointer"
+            className="text-white text-4xl cursor-pointer"
             onClick={() => setMenuOpen(!menuOpen)} // Al hacer clic, mostramos o cerramos el menú
           />
           

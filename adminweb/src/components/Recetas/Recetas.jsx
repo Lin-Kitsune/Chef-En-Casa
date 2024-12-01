@@ -143,6 +143,8 @@ const Recetas = () => {
   const closeEditModal = () => {
     setEditRecipeModalVisible(false);
   };
+
+  //
   
   // Filtrar recetas en base a búsqueda y filtros
 const filteredRecetas = recetas

@@ -15,6 +15,9 @@ import Consultas from './components/Consultas/Consultas.jsx';
 import Notificaciones from './components/Notificaciones/Notificaciones.jsx';
 import Convenios from './components/Convenios/Convenios.jsx';
 import Cupones from './components/Cupones/Cupones.jsx';
+import SabiasQuePage from './components/SabiasQue/SabiasQuePage.jsx';
+import Dashboard from './components/Dashboard/Dashboard.jsx'; 
+import Gestion from './components/Dashboard/Gestion.jsx'; 
 
 import Usuarios from './components/Graficos/Usuarios.jsx';
 import GraIngredientes from './components/Graficos/GraIngredientes.jsx';
@@ -66,6 +69,8 @@ const ProtectedLayout = () => {
           {/* El contenido principal cambia según la ruta */}
           <div className="flex-1 pl-1 pt-1">
             <Routes>
+              <Route path="/" element={<Dashboard />} /> {/* Página de inicio/dashboard */}
+              <Route path="/gestion" element={<Gestion />} /> {/* Ruta Gestión */}
               <Route path="/recetas" element={<Recetas />} />
               <Route path="/ingredientes" element={<Ingredientes />} />
               <Route path="/meta" element={<Meta />} />
@@ -74,6 +79,7 @@ const ProtectedLayout = () => {
               <Route path="/notificaciones" element={<Notificaciones/>} />
               <Route path="/convenios" element={<Convenios/>} />
               <Route path="/cupones" element={<Cupones/>} />
+              <Route path="/sabias-que" element={<SabiasQuePage />} />
               {/* Rutas de cada sección de gráficos */}
               <Route path="/graficos/usuarios" element={<Usuarios />} />
               <Route path="/graficos/ingredientes" element={<GraIngredientes />} />
