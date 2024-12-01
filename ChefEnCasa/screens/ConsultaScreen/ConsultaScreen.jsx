@@ -198,15 +198,17 @@ const ConsultaScreen = ({ navigation }) => {
                   placeholder="Escribe el título aquí"
                 />
                 
-                <Text style={styles.label}>Seleccionar destinatario</Text>
+                <Text style={styles.label}>Tipo de Solicitud</Text>
                 <View style={styles.pickerContainer}>
                   <Picker
-                    selectedValue={newConsulta.destinatario}
-                    onValueChange={(itemValue) => setNewConsulta({ ...newConsulta, destinatario: itemValue })}
+                    selectedValue={newConsulta.tipo}
+                    onValueChange={(itemValue) => setNewConsulta({ ...newConsulta, tipo: itemValue })}
                     style={styles.picker}
                   >
-                    <Picker.Item label="Administrador" value="admin" />
-                    <Picker.Item label="Nutricionista" value="nutricionista" />
+                    <Picker.Item label="Solicitud" value="Solicitud" />
+                    <Picker.Item label="Reclamo" value="Reclamo" />
+                    <Picker.Item label="Sugerencia" value="Sugerencia" />
+                    <Picker.Item label="Nutricionista" value="Nutricionista" />
                   </Picker>
                 </View>
                 

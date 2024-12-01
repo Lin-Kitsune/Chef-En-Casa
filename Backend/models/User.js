@@ -17,17 +17,10 @@ const UserSchema = {
     type: Date,      // Fecha de registro
     default: new Date(), // Valor por defecto: fecha actual
   },
+  fechaUltimaSesion: { // Campo para almacenar la fecha de la última sesión
+    type: Date,
+    default: null, // Inicialmente null hasta el primer inicio de sesión
+  },
 };
-
-// Función para hashear la contraseña
-async function hashPassword(password) {
-  const salt = await bcrypt.genSalt(10);
-  return await bcrypt.hash(password, salt);
-}
-
-// Función para verificar la contraseña
-async function comparePassword(plainPassword, hashedPassword) {
-  return await bcrypt.compare(plainPassword, hashedPassword);
-}
 
 module.exports = { UserSchema, hashPassword, comparePassword };

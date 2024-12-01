@@ -262,6 +262,12 @@ app.use((err, req, res, next) => {
     const actividades = new Actividades(db);
     await actividades.registrarActividad(usuario._id, 'login', 'Inicio de sesión exitoso');
 
+    // Actualizar la fecha de la última sesión
+  await usersCollection.updateOne(
+    { _id: new ObjectId(usuario._id) },
+    { $set: { fechaUltimaSesion: new Date() } }
+  );
+
     // Enviar el token de respuesta
     res.status(200).json({ message: 'Login exitoso', token });
   });
@@ -528,8 +534,6 @@ app.post('/reclamos', authenticateToken, async (req, res) => {
     await client.close();
   }
 });
-
-
 
 //===================================================INGREDIENTES=============================================
 

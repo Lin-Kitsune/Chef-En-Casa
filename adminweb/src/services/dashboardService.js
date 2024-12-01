@@ -3,6 +3,41 @@ import { getToken } from './authService';
 
 const API_URL = 'http://localhost:4000/api/admin';
 
+
+
+//FUNCIONES OPERATIVAS DE ADMIN
+// Obtener solicitudes por tipo
+export const getSolicitudesPorTipo = async (tipo = null) => {
+  try {
+    const token = await getToken();
+    const params = { tipo }; // Enviamos el tipo como parámetro para filtrar las solicitudes
+    const response = await axios.get(`${API_URL}/solicitudes`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener las solicitudes:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Actualizar estado y respuesta de una solicitud
+export const actualizarSolicitud = async (id, estado, respuesta) => {
+  try {
+    const token = await getToken();
+    const body = { estado, respuesta }; // El cuerpo con la nueva información
+    const response = await axios.put(`${API_URL}/solicitudes/${id}`, body, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al actualizar la solicitud:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
 // Obtener usuarios activos
 export const getUsuariosActivos = async (rango = 'diario', mes = null, anio = null) => {
   try {
@@ -12,12 +47,13 @@ export const getUsuariosActivos = async (rango = 'diario', mes = null, anio = nu
       headers: { Authorization: `Bearer ${token}` },
       params,
     });
-    return response.data;
+    return response.data.usuariosActivos;
   } catch (error) {
     console.error('Error al obtener usuarios activos:', error.response?.data || error.message);
     throw error;
   }
 };
+
 
 
 
@@ -38,7 +74,6 @@ export const getIngredientesMasAlmacenados = async (rango, mes = null, anio = nu
 };
 
 // Obtener ingredientes más usados
-// Obtener ingredientes más usados
 export const getIngredientesMasUsados = async (rango, mes = null, anio = null) => {
   try {
     const token = await getToken();
@@ -53,6 +88,8 @@ export const getIngredientesMasUsados = async (rango, mes = null, anio = null) =
     throw error;
   }
 };
+
+
 
 //FUNCIONES ANTIGUAS
 // Nuevos Usuarios Simulados

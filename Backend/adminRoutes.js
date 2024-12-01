@@ -224,7 +224,7 @@ router.post('/usuarios', authenticateToken, checkRole('admin'), async (req, res)
   }
 });
 module.exports = router;
-//========================================RECLAMOS=============================================
+
 // Ruta para obtener todos los reclamos (admin)
 router.get('/reclamos', authenticateToken, checkRole('admin'), async (req, res) => {
   try {
@@ -1132,151 +1132,91 @@ router.delete('/cupones/:id', authenticateToken, checkRole('admin'), async (req,
   }
 });
 
-// Rutas para gráficos del panel de administración
-// ==========================================
-// Contabilizar ingredientes más almacenados por los usuarios
-router.get('/admin/ingredientes-mas-almacenados', authenticateToken, checkRole('admin'), async (req, res) => {
-  const { rango, mes, anio } = req.query; // Recibir rango, mes y año como parámetros
-  try {
-    const db = await connectToDatabase();
-    console.log('Base de datos conectada:', db);
-
-    // Calcular rango de fechas basado en el rango, mes y año proporcionados
-    const rangoFechas = calcularRangoFechas(rango, parseInt(mes), parseInt(anio));
-    console.log('Rango de fechas:', rangoFechas);
-
-    const ingredientesMasAlmacenados = await db.collection('almacen').aggregate([
-      { $unwind: '$ingredientes' }, // Descomponer el array de ingredientes
-      { 
-        $match: { 
-          'ingredientes.fechaIngreso': { $gte: rangoFechas.startDate, $lte: rangoFechas.endDate } 
-        } 
-      }, // Filtrar por rango de fechas
-      {
-        $group: {
-          _id: '$ingredientes.nombre', // Agrupar por nombre de ingrediente
-          totalCantidad: { $sum: '$ingredientes.cantidad' } // Sumar las cantidades
-        }
-      },
-      { $sort: { totalCantidad: -1 } }, // Ordenar de mayor a menor
-      { $limit: 10 } // Limitar a los 10 más almacenados
-    ]).toArray();
-
-    res.status(200).json(ingredientesMasAlmacenados);
-  } catch (error) {
-    console.error('Error al obtener ingredientes más almacenados:', error.message);
-    res.status(500).json({ message: 'Error al obtener ingredientes más almacenados.', error: error.message });
-  }
-});
-
-// Contabilizar ingredientes más usados por los usuarios
-router.get('/ingredientes-mas-usados', authenticateToken, checkRole('admin'), async (req, res) => {
-  const { rango, mes, anio } = req.query;
+// Rutas para actividades operativas del administrador
+//========================================RECLAMOS GENERALES=============================================
+// Ruta para obtener solicitudes por tipo
+router.get('/solicitudes', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { tipo } = req.query; // Obtiene el tipo de solicitud desde los parámetros de la query
 
   try {
     await client.connect();
     const db = client.db('chefencasa');
+    const reclamosCollection = db.collection('reclamos');
 
-    // Calcular el rango de fechas
-    const { startDate, endDate } = calcularRangoFechas(rango, parseInt(mes), parseInt(anio));
-
-    // Agregar la consulta para la colección IngredientesUsados
-    const ingredientesMasUsados = await db.collection('IngredientesUsados').aggregate([
-      {
-        $match: {
-          fecha: { $gte: startDate, $lte: endDate }, // Filtrar por fechas
-        },
-      },
-      {
-        $group: {
-          _id: '$nombre',  // Agrupar por nombre del ingrediente
-          totalCantidad: { $sum: '$cantidad' },  // Sumar la cantidad total usada de cada ingrediente
-        },
-      },
-      { $sort: { totalCantidad: -1 } },  // Ordenar de mayor a menor cantidad usada
-      { $limit: 10 },  // Limitar a los 10 ingredientes más usados
-    ]).toArray();
-
-    // Verifica que los datos fueron obtenidos correctamente
-    if (ingredientesMasUsados.length > 0) {
-      res.status(200).json(ingredientesMasUsados);
-    } else {
-      res.status(404).json({ message: 'No se encontraron ingredientes más usados' });
+    let query = {};
+    if (tipo) {
+      query.tipo = tipo; // Si se especifica el tipo, se filtra por ese tipo
     }
+
+    const solicitudes = await reclamosCollection.find(query).toArray();
+    
+    res.status(200).json(solicitudes);
   } catch (error) {
-    console.error('Error al obtener ingredientes más usados:', error.message);
-    res.status(500).json({ message: 'Error al obtener ingredientes más usados', error: error.message });
+    res.status(500).json({ message: 'Error al obtener las solicitudes', error: error.message });
+  } finally {
+    await client.close();
   }
 });
 
-/// Obtener la cantidad de usuarios activos por rango de tiempo
-router.get('/usuarios-activos', authenticateToken, async (req, res) => {
+// Ruta para actualizar una solicitud (admin)
+router.put('/solicitudes/:id', authenticateToken, checkRole('admin'), async (req, res) => {
+  const { id } = req.params;
+  const { estado, respuesta } = req.body;
+
+  if (!estado) {
+    return res.status(400).json({ message: 'El estado es obligatorio' });
+  }
+
   try {
-    const db = client.db('chefencasa'); // Obtener la base de datos
-    const { rango, mes, anio } = req.query;
+    await client.connect();
+    const db = client.db('chefencasa');
+    const reclamosCollection = db.collection('reclamos');
 
-    if (!rango) {
-      return res.status(400).json({ message: 'El parámetro "rango" es requerido' });
+    const result = await reclamosCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { estado, respuesta, fechaRespuesta: new Date() } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Solicitud no encontrada o sin cambios' });
     }
 
-    // Calcular el rango de fechas
-    const { startDate, endDate } = calcularRangoFechas(rango, parseInt(mes), parseInt(anio));
-
-    const actividades = await db.collection('actividades').aggregate([
-      {
-        $match: {
-          tipo: 'login', // Solo actividades de tipo 'login'
-          fecha: { $gte: startDate, $lte: endDate },
-        },
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$fecha' } },
-          usuarios: { $addToSet: '$usuarioId' }, // Agrupar usuarios únicos
-        },
-      },
-      {
-        $project: {
-          _id: 1, // Fecha
-          cantidadUsuarios: { $size: '$usuarios' }, // Cantidad de usuarios únicos
-        },
-      },
-      { $sort: { _id: 1 } }, // Ordenar por fecha
-    ]).toArray();
-
-    res.status(200).json(actividades);
+    res.status(200).json({ message: 'Solicitud actualizada con éxito' });
   } catch (error) {
-    console.error('Error al obtener usuarios activos:', error.message);
-    res.status(500).json({ message: 'Error al obtener usuarios activos', error: error.message });
+    res.status(500).json({ message: 'Error al actualizar la solicitud', error: error.message });
+  } finally {
+    await client.close();
   }
 });
 
-// ==========================================
-// Función auxiliar para calcular rangos de fechas
-// ==========================================
-function calcularRangoFechas(rango, mes, anio) {
-  const ahora = new Date();
-  const rangoFechas = {};
+//=======================USUARIOS ACTIVOS============================
+// Endpoint para obtener usuarios activos
+router.get('/api/admin/usuarios-activos', async (req, res) => {
+  const { rango, mes, anio } = req.query;
+  const fechaActual = new Date();
 
+  let fechaInicio;
+
+  // Definir la fecha de inicio según el rango
   if (rango === 'diario') {
-    rangoFechas.startDate = new Date(ahora.setHours(0, 0, 0, 0)); // Inicio del día
-    rangoFechas.endDate = new Date(ahora.setHours(23, 59, 59, 999)); // Fin del día
+    fechaInicio = new Date(fechaActual.setDate(fechaActual.getDate() - 1)); // Últimas 24 horas
   } else if (rango === 'semanal') {
-    const startOfWeek = new Date(ahora.setDate(ahora.getDate() - ahora.getDay())); // Inicio de la semana
-    rangoFechas.startDate = new Date(startOfWeek.setHours(0, 0, 0, 0));
-    rangoFechas.endDate = new Date(ahora.setHours(23, 59, 59, 999));
-  } else if (rango === 'mensual') {
-    // Si se proporciona mes y año, usar esos valores
-    const year = anio || ahora.getFullYear(); // Por defecto, el año actual
-    const month = typeof mes !== 'undefined' ? mes - 1 : ahora.getMonth(); // Por defecto, el mes actual
-
-    rangoFechas.startDate = new Date(year, month, 1); // Inicio del mes especificado
-    rangoFechas.endDate = new Date(year, month + 1, 0, 23, 59, 59, 999); // Fin del mes especificado
-  } else {
-    throw new Error('Rango no válido');
+    fechaInicio = new Date(fechaActual.setDate(fechaActual.getDate() - 7)); // Últimos 7 días
   }
 
-  return rangoFechas;
-}
+  try {
+    // Obtener usuarios activos (por ejemplo, basándonos en la fecha de última sesión)
+    const usuariosActivos = await usersCollection.find({
+      fechaUltimaSesion: { $gte: fechaInicio }, // Filtra usuarios activos según la fecha
+    }).countDocuments();
+
+    res.json({ usuariosActivos });
+  } catch (error) {
+    console.error('Error al obtener usuarios activos:', error);
+    res.status(500).json({ message: 'Error al obtener usuarios activos' });
+  }
+});
+
+
 
 module.exports = router;
