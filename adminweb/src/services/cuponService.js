@@ -59,10 +59,13 @@ export const updateCupon = async (id, updatedCupon) => {
 export const deleteCupon = async (id) => {
   try {
     const token = await getToken();
-    await axios.delete(`${API_URL}/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const response = await axios.delete(`${API_URL}/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
-    console.log('Cupón eliminado:', id);
+    console.log('Cupón eliminado:', response.data);
+    return response.data;
   } catch (error) {
     console.error('Error al eliminar cupón:', error.response?.data || error.message);
     throw error;

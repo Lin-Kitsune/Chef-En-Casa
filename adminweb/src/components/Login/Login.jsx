@@ -15,7 +15,7 @@ const Login = () => {
     try {
       const response = await login(email, password);  // Usar el servicio de login
       console.log(response.message);  // Mensaje de éxito
-      navigate('/dashboard');  // Redirigir al dashboard después del login exitoso
+      navigate('/');  // Redirigir al dashboard después del login exitoso
     } catch (err) {
       setError('Error en la conexión al servidor o credenciales incorrectas');
     }
