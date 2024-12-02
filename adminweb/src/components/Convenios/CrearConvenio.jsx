@@ -4,6 +4,7 @@ const CrearConvenio = ({ onClose, onSave, convenio }) => {
   const [empresa, setEmpresa] = useState(convenio ? convenio.empresa : '');
   const [producto, setProducto] = useState(convenio ? convenio.producto : '');
   const [descripcion, setDescripcion] = useState(convenio ? convenio.descripcion : '');
+  const [precio, setPrecio] = useState(convenio ? convenio.precio : '');
   const [imagenProducto, setImagenProducto] = useState(null); // Almacena el archivo en lugar de la URL
 
   useEffect(() => {
@@ -11,6 +12,7 @@ const CrearConvenio = ({ onClose, onSave, convenio }) => {
       setEmpresa(convenio.empresa);
       setProducto(convenio.producto);
       setDescripcion(convenio.descripcion);
+      setPrecio(convenio.precio || '');
       setImagenProducto(null); // Resetea la imagen para editar
     }
   }, [convenio]);
@@ -27,6 +29,7 @@ const CrearConvenio = ({ onClose, onSave, convenio }) => {
       empresa,
       producto,
       descripcion,
+      precio, 
       imagenProducto, // Deja la imagen como parte del objeto
     };
     onSave(convenioData); // Envía los datos en formato de objeto
@@ -71,6 +74,18 @@ const CrearConvenio = ({ onClose, onSave, convenio }) => {
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
             placeholder="Descripción del convenio..."
+          />
+        </div>
+
+        {/* Precio */}
+        <div>
+          <label className="block text-lg font-semibold mb-2">Precio</label>
+          <input
+            className="w-full border border-gray-300 rounded-lg p-3"
+            type="number"
+            value={precio}
+            onChange={(e) => setPrecio(e.target.value)}
+            placeholder="Monto del pago por propaganda"
           />
         </div>
 
