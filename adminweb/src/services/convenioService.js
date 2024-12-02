@@ -28,6 +28,7 @@ export const createConvenio = async (convenio) => {
     formData.append('empresa', convenio.empresa);
     formData.append('producto', convenio.producto);
     formData.append('descripcion', convenio.descripcion);
+    formData.append('precio', convenio.precio); // Agregar el precio aquí
     if (convenio.imagenProducto) {
       formData.append('imagen', convenio.imagenProducto); // Agrega la imagen si existe
     }
@@ -45,6 +46,7 @@ export const createConvenio = async (convenio) => {
   }
 };
 
+
 // Actualizar un convenio por ID
 export const updateConvenio = async (id, updatedConvenio) => {
   try {
@@ -53,6 +55,7 @@ export const updateConvenio = async (id, updatedConvenio) => {
     formData.append('empresa', updatedConvenio.empresa);
     formData.append('producto', updatedConvenio.producto);
     formData.append('descripcion', updatedConvenio.descripcion);
+    formData.append('precio', updatedConvenio.precio); // Agregar el precio aquí
     if (updatedConvenio.imagenProducto) {
       formData.append('imagen', updatedConvenio.imagenProducto);
     }
@@ -73,7 +76,6 @@ export const updateConvenio = async (id, updatedConvenio) => {
     throw error;
   }
 };
-
 
 // Eliminar un convenio por ID
 export const deleteConvenio = async (id) => {

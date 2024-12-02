@@ -123,6 +123,7 @@ const Convenios = () => {
               <p className="text-lg font-semibold">Empresa: {convenio.empresa}</p>
               <p className="text-gray-600">Producto: {convenio.producto}</p>
               <p className="text-sm text-gray-400">Descripción: {convenio.descripcion}</p>
+              <p className="text-sm text-gray-400">Precio: {convenio.precio}</p>
             </div>
             <div className="mt-4 flex space-x-4 justify-between">
               <button className="bg-verde-chef text-white py-2 px-4 rounded-full font-bold hover:bg-blue-600" onClick={() => openEditModal(convenio)}>
