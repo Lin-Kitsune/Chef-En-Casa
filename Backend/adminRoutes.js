@@ -848,12 +848,12 @@ router.get('/notificaciones', authenticateToken, async (req, res) => {
 //==============================CONVENIOS==========================================
 // Crear un convenio
 router.post('/convenios', authenticateToken, checkRole('admin'), upload.single('imagen'), async (req, res) => {
-  const { empresa, producto, descripcion } = req.body;
+  const { empresa, producto, descripcion, precio } = req.body;
   const imagen = req.file ? req.file.path : null;
 
   // Validar campos obligatorios
-  if (!empresa || !producto || !descripcion) {
-    return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  if (!empresa || !producto || !descripcion || !precio) {
+    return res.status(400).json({ message: 'Todos los campos son obligatorios, incluyendo el precio' });
   }
 
   try {
@@ -867,6 +867,7 @@ router.post('/convenios', authenticateToken, checkRole('admin'), upload.single('
       empresa,
       producto,
       descripcion,
+      precio,  // Aquí se agrega el campo precio
       imagen,
       fechaCreacion: new Date(),
     };
@@ -889,7 +890,7 @@ router.post('/convenios', authenticateToken, checkRole('admin'), upload.single('
   } finally {
     await client.close();
   }
-});
+}); 
 
 // Obtener todos los convenios
 router.get('/convenios', authenticateToken, async (req, res) => {
@@ -959,6 +960,7 @@ router.put('/convenios/:id', authenticateToken, checkRole('admin'), upload.singl
       empresa,
       producto,
       descripcion,
+      precio,
       ...(imagen && { imagen }), // Solo incluye imagen si existe
     };
 
@@ -982,13 +984,14 @@ router.delete('/convenios/:id', authenticateToken, checkRole('admin'), async (re
   const { id } = req.params;
 
   try {
-    // Validar si el ID es válido
+    // Verificar si el ID es válido
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'ID inválido' });
     }
 
+    await client.connect();  // Conectar a la base de datos antes de realizar la operación
     const db = client.db('chefencasa'); // Conexión a la base de datos
-    const convenioModel = new Convenio(db);
+    const convenioModel = new Convenio(db); // Usar el modelo para interactuar con la colección
 
     // Intentar eliminar el convenio
     const result = await convenioModel.delete(id);
@@ -1001,9 +1004,10 @@ router.delete('/convenios/:id', authenticateToken, checkRole('admin'), async (re
     // Respuesta exitosa
     res.status(200).json({ message: 'Convenio eliminado exitosamente' });
   } catch (error) {
-    // Manejo de errores
     console.error('Error al eliminar convenio:', error);
     res.status(500).json({ message: 'Error al eliminar convenio', error: error.message });
+  } finally {
+    await client.close(); // Cerrar la conexión después de completar la operación
   }
 });
 
