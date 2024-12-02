@@ -13,22 +13,35 @@ const Cupones = () => {
 
   // Función centralizada para obtener los cupones
   const fetchCupones = async () => {
+    setLoading(true); // Estado de carga
     try {
-      setLoading(true); // Muestra un estado de carga mientras se obtienen los datos
-      const cuponList = await getAllCupones();
-      setCupones(cuponList);
+      const cuponList = await getAllCupones(); // Llamada a la API
+      setCupones(cuponList); // Actualiza el estado con los cupones
     } catch (error) {
-      console.error('Error al cargar cupones:', error);
+      console.error('Error al obtener cupones:', error);
       alert('Error al cargar cupones. Inténtalo más tarde.');
     } finally {
-      setLoading(false);
+      setLoading(false); // Detén el estado de carga
     }
-  };
+  };  
 
   // Llamada inicial para cargar los cupones
   useEffect(() => {
-    fetchCupones();
-  }, []);
+    const fetchCupones = async () => {
+      setLoading(true); // Estado de carga
+      try {
+        const cuponList = await getAllCupones();
+        setCupones(cuponList); // Actualiza el estado con los cupones obtenidos
+      } catch (error) {
+        console.error('Error al obtener cupones:', error);
+        alert('Error al cargar cupones. Inténtalo más tarde.');
+      } finally {
+        setLoading(false); // Detén el estado de carga
+      }
+    };
+  
+    fetchCupones(); // Llamada a la API
+  }, []); // Dependencia vacía para que se ejecute solo al montar el componente  
 
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar este cupón?')) {
