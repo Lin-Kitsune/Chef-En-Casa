@@ -1,26 +1,29 @@
 const { ObjectId } = require('mongodb');
-
 class Cupon {
   constructor(db) {
-    this.collection = db.collection('cupones');
+    this.db = db;
+    this.collection = db.collection('cupones'); // Nombre de la colección en MongoDB
   }
 
-  async create(cupon) {
+  // Método para crear un nuevo cupón
+  async create(cuponData) {
     try {
-      const result = await this.collection.insertOne(cupon);
-      return result;
+      const result = await this.collection.insertOne(cuponData);
+      // Devuelve el documento insertado directamente
+      return result.ops ? result.ops[0] : result;  // Si 'ops' no existe, devolvemos el resultado completo.
     } catch (error) {
-      console.error('Error en create():', error);
-      throw new Error('Error al crear cupón');
+      console.error('Error al crear cupón:', error);
+      throw error;
     }
   }
 
+  // Método para obtener todos los cupones
   async findAll() {
     try {
-      return await this.collection.find({}).toArray();
+      return await this.collection.find().toArray();
     } catch (error) {
-      console.error('Error en findAll():', error);
-      throw new Error('Error al obtener cupones');
+      console.error('Error al obtener cupones:', error);
+      throw error; // Lanzar error para que lo capture el middleware
     }
   }
 
@@ -52,16 +55,20 @@ class Cupon {
     }
   }
 
+  // Método para eliminar un cupón por ID
   async delete(id) {
     try {
       if (!ObjectId.isValid(id)) {
         throw new Error('ID inválido');
       }
       const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
+      if (result.deletedCount === 0) {
+        throw new Error('Cupón no encontrado');
+      }
       return result;
     } catch (error) {
-      console.error('Error en delete():', error);
-      throw new Error('Error al eliminar cupón');
+      console.error('Error al eliminar cupón:', error);
+      throw error;
     }
   }
 }

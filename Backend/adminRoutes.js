@@ -15,7 +15,6 @@ const Cupon = require('./models/Cupon');
 const QRCode = require('qrcode');
 const Actividades = require('./models/Actividades');
 
-
 const NotificacionSchema = new mongoose.Schema({
   mensaje: { type: String, required: true },
   tipo: { type: String, enum: ['ingrediente', 'receta'], required: true },
@@ -1014,20 +1013,24 @@ router.delete('/convenios/:id', authenticateToken, checkRole('admin'), async (re
 //==============================CUPONES==========================================
 // Crear un nuevo cupón con QR generado automáticamente
 router.post('/cupones', authenticateToken, checkRole('admin'), async (req, res) => {
+  console.log('Datos recibidos:', req.body); // Agrega esta línea para ver los datos recibidos
   const { nombre, descripcion, descuento, puntos_necesarios, fecha_expiracion, tienda } = req.body;
 
+  // Validación de los campos obligatorios
   if (!nombre || !descuento || !puntos_necesarios || !fecha_expiracion || !tienda) {
     return res.status(400).json({ message: 'Todos los campos obligatorios deben completarse' });
   }
 
   try {
+    await client.connect();
     const db = client.db('chefencasa');
     const cuponModel = new Cupon(db);
 
-    // Generar QR
+    // Generar el código QR del cupón
     const qrData = `${nombre} - Descuento: ${descuento}% - Puntos necesarios: ${puntos_necesarios}`;
-    const qrCode = await QRCode.toDataURL(qrData);
+    const qrCode = await QRCode.toDataURL(qrData); // Genera el QR automáticamente
 
+    // Crear el nuevo cupón con los datos proporcionados
     const nuevoCupon = {
       nombre,
       descripcion,
@@ -1035,28 +1038,51 @@ router.post('/cupones', authenticateToken, checkRole('admin'), async (req, res) 
       puntos_necesarios,
       fecha_expiracion: new Date(fecha_expiracion),
       tienda,
-      qr_code: qrCode,
+      qr_code: qrCode, // Incluye el QR generado
+      fechaCreacion: new Date(),  // Para mantener el mismo formato de fecha
     };
 
+    // Guardar el cupón en la base de datos
     const result = await cuponModel.create(nuevoCupon);
+
+    // Crear una notificación (si es necesario)
+    const notificacionesCollection = db.collection('notificaciones'); // Para crear notificaciones
+    const notificacion = {
+      mensaje: `Nuevo cupón creado: ${nombre} - ${descuento}% de descuento`,
+      tipo: 'cupon',
+      fecha: new Date(),
+      visto: false,
+    };
+    await notificacionesCollection.insertOne(notificacion);
+
     res.status(201).json({ message: 'Cupón creado exitosamente', cupon: result });
   } catch (error) {
     console.error('Error al crear cupón:', error);
-    res.status(500).json({ message: 'Error al crear cupón' });
+    res.status(500).json({ message: 'Error al crear cupón', error: error.message });
   }
 });
 
 // Obtener todos los cupones
-router.get('/cupones', authenticateToken, checkRole('admin'), async (req, res) => {
+router.get('/cupones', authenticateToken, async (req, res) => {
   try {
-    const db = client.db('chefencasa');
-    const cuponModel = new Cupon(db);
+    // Conexión a la base de datos
+    await client.connect();  // Asegúrate de no desconectar después de cada consulta, mantén la conexión abierta
+    const db = client.db('chefencasa');  // Usa la misma base de datos que para los convenios
+    const cuponModel = new Cupon(db);  // El modelo Cupon debería ser similar al de Convenio
+    
+    // Consultamos todos los cupones
+    const cupones = await cuponModel.findAll();  // Similar a lo que haces en los convenios
 
-    const cupones = await cuponModel.findAll();
-    res.status(200).json(cupones);
+    if (!cupones || cupones.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron cupones' });
+    }
+
+    res.status(200).json(cupones);  // Devolvemos la lista de cupones
   } catch (error) {
     console.error('Error al obtener cupones:', error);
-    res.status(500).json({ message: 'Error al obtener cupones' });
+    res.status(500).json({ message: 'Error al obtener cupones', error: error.message });
+  } finally {
+    await client.close();  // No olvides cerrar la conexión si la abres
   }
 });
 
@@ -1085,14 +1111,17 @@ router.put('/cupones/:id', authenticateToken, checkRole('admin'), async (req, re
   const { id } = req.params;
   const { nombre, descripcion, descuento, puntos_necesarios, fecha_expiracion, tienda } = req.body;
 
+  // Validación de los campos obligatorios
   if (!nombre || !descuento || !puntos_necesarios || !fecha_expiracion || !tienda) {
     return res.status(400).json({ message: 'Todos los campos obligatorios deben completarse' });
   }
 
   try {
+    await client.connect();  // Conectar a la base de datos
     const db = client.db('chefencasa');
     const cuponModel = new Cupon(db);
 
+    // Datos de actualización
     const updateData = {
       nombre,
       descripcion,
@@ -1100,39 +1129,51 @@ router.put('/cupones/:id', authenticateToken, checkRole('admin'), async (req, re
       puntos_necesarios,
       fecha_expiracion: new Date(fecha_expiracion),
       tienda,
+      fechaActualizacion: new Date(),  // Agregar una fecha de actualización
     };
 
+    // Actualizar el cupón
     const result = await cuponModel.update(id, updateData);
 
     if (result.modifiedCount === 0) {
       return res.status(404).json({ message: 'Cupón no encontrado o sin cambios' });
     }
 
+    // Si deseas, puedes crear una notificación como en convenios
+    const notificacionesCollection = db.collection('notificaciones');
+    const notificacion = {
+      mensaje: `El cupón "${nombre}" ha sido actualizado`,
+      tipo: 'cupón',
+      fecha: new Date(),
+      visto: false,
+    };
+    await notificacionesCollection.insertOne(notificacion);  // Crear notificación
+
     res.status(200).json({ message: 'Cupón actualizado exitosamente' });
   } catch (error) {
     console.error('Error al actualizar cupón:', error);
     res.status(500).json({ message: 'Error al actualizar cupón' });
+  } finally {
+    await client.close();  // Cerrar la conexión
   }
 });
 
 // Eliminar un cupón por ID
 router.delete('/cupones/:id', authenticateToken, checkRole('admin'), async (req, res) => {
   const { id } = req.params;
-
+  
   try {
+    await client.connect();
     const db = client.db('chefencasa');
     const cuponModel = new Cupon(db);
 
+    // Llamar al método delete del modelo
     const result = await cuponModel.delete(id);
 
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ message: 'Cupón no encontrado' });
-    }
-
-    res.status(200).json({ message: 'Cupón eliminado exitosamente' });
+    res.status(200).json({ message: 'Cupón eliminado correctamente' });
   } catch (error) {
-    console.error('Error al eliminar cupón:', error);
-    res.status(500).json({ message: 'Error al eliminar cupón' });
+    console.error('Error eliminando cupón:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 
