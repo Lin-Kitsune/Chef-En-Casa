@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
-import { getRecipeTrends } from '../../services/dashboardService';
+import { getRecipeTrends } from '../../services/OperativeService';
 import {
   Chart as ChartJS,
   CategoryScale,

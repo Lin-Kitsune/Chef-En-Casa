@@ -24,6 +24,27 @@ export const getAllReclamos = async () => {
     }
 };
 
+// Obtener cantidad de reclamos por tipo
+export const getReclamosCantidadPorTipo = async () => {
+  try {
+    const token = await getToken();
+    console.log("Token obtenido en el frontend:", token); // Verifica que el token sea válido
+    const response = await axios.get(`${API_URL}/reclamos/cantidad-por-tipo`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data; // Debe retornar un objeto con la cantidad por tipo
+  } catch (error) {
+    if (error.response) {
+      console.error('Error en la respuesta del servidor:', error.response.status, error.response.data);
+    } else {
+      console.error('Error en la solicitud:', error.message);
+    }
+    throw error;
+  }
+};
+
 // Actualizar reclamo
 export const updateReclamo = async (id, estado, respuesta) => {
   try {

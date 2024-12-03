@@ -9,7 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { getIngredientesMasUsados } from '../../services/dashboardService'; // Asegúrate de que esta función esté correctamente implementada
+import { getIngredientesMasUsados } from '../../services/OperativeService'; // Asegúrate de que esta función esté correctamente implementada
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 

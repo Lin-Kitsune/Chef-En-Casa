@@ -1,7 +1,7 @@
 // components/Graficos/Recetas.js
 import React from 'react';
 import TendenciaRecetas from './TendenciaRecetas';
-import RecurrenciaRecetas from './RecurrenciaRecetas';
+import RecurrenciaRecetas from './RecetasPreparadas';
 
 const GraRecetas = () => {
   return (

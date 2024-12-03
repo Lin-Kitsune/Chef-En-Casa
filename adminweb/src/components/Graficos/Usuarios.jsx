@@ -1,6 +1,6 @@
 // components/Graficos/Usuarios.js
 import React from 'react';
-import ActividadDiaria from './ActividadDiaria';
+import ActividadDiaria from './UsuariosActivos';
 import NuevosUsuarios from './NuevosUsuarios';
 import SegmentacionUsuarios from './SegmentacionUsuarios';
 import MonitoreoUsuarios from './MonitoreoUsuarios';

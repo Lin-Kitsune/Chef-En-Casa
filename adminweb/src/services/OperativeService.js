@@ -3,59 +3,43 @@ import { getToken } from './authService';
 
 const API_URL = 'http://localhost:4000/api/admin';
 
+// Funciones operativas de admin
 
-
-//FUNCIONES OPERATIVAS DE ADMIN
-// Obtener solicitudes por tipo
-export const getSolicitudesPorTipo = async (tipo = null) => {
+// Obtener cantidad de solicitudes "En espera" por tipo
+export const getCantidadPorTipo = async (tipo) => {
   try {
     const token = await getToken();
-    const params = { tipo }; // Enviamos el tipo como parámetro para filtrar las solicitudes
     const response = await axios.get(`${API_URL}/solicitudes`, {
-      headers: { Authorization: `Bearer ${token}` },
-      params,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        tipo: tipo // Aquí pasamos el tipo como parámetro en la URL
+      }
     });
-    return response.data;
+    return response.data; // Esta respuesta contiene el tipo y la cantidad
   } catch (error) {
-    console.error('Error al obtener las solicitudes:', error.response?.data || error.message);
+    console.error('Error al obtener las cantidades por tipo:', error);
     throw error;
   }
 };
 
-// Actualizar estado y respuesta de una solicitud
-export const actualizarSolicitud = async (id, estado, respuesta) => {
+// Obtener cantidad de usuarios activos
+export const getUsuariosActivos = async (rango = 'diario') => {
   try {
     const token = await getToken();
-    const body = { estado, respuesta }; // El cuerpo con la nueva información
-    const response = await axios.put(`${API_URL}/solicitudes/${id}`, body, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error al actualizar la solicitud:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
-
-// Obtener usuarios activos
-export const getUsuariosActivos = async (rango = 'diario', mes = null, anio = null) => {
-  try {
-    const token = await getToken();
-    const params = { rango, mes, anio };
     const response = await axios.get(`${API_URL}/usuarios-activos`, {
-      headers: { Authorization: `Bearer ${token}` },
-      params,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: { rango }, // Pasa el rango como parámetro
     });
-    return response.data.usuariosActivos;
+    return response.data; // Devuelve la cantidad de usuarios activos
   } catch (error) {
-    console.error('Error al obtener usuarios activos:', error.response?.data || error.message);
+    console.error('Error al obtener los usuarios activos:', error);
     throw error;
   }
 };
-
-
-
 
 // Obtener ingredientes más almacenados
 export const getIngredientesMasAlmacenados = async (rango, mes = null, anio = null) => {
