@@ -10,7 +10,10 @@ export const getAllSabiasQue = async () => {
     const response = await axios.get(API_URL, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data;
+
+    // Asegúrate de revisar la estructura de la respuesta
+    console.log('Sabías Que obtenidos:', response.data);
+    return response.data.sabiasQue;  // Asegúrate de devolver solo los datos de los Sabías Que
   } catch (error) {
     console.error('Error al obtener Sabías Que:', error.response || error.message);
     throw error;
@@ -71,18 +74,15 @@ export const updateSabiasQue = async (id, sabiasQue) => {
 
 // Eliminar un Sabías Que por ID
 export const deleteSabiasQue = async (id) => {
-    try {
-      const token = await getToken();
-      const response = await axios.delete(`${API_URL}/sabias-que/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-  
-      // Verifica que la respuesta tiene la estructura correcta
-      console.log("Respuesta completa de eliminación:", response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Error al eliminar Sabías Que:', error.response?.data || error.message);
-      throw error;  // Propaga el error para ser manejado en el frontend
-    }
-  };
-  
+  try {
+    const token = await getToken();
+    const response = await axios.delete(`${API_URL}/sabias-que/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al eliminar Sabías Que:', error.response?.data || error.message);
+    throw error;  // Propaga el error para manejarlo en el frontend
+  }
+};
+
