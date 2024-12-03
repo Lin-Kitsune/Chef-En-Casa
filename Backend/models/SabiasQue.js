@@ -2,7 +2,7 @@ const { ObjectId } = require('mongodb');
 
 class SabiasQue {
   constructor(db) {
-    this.collection = db.collection('sabiasQue');
+    this.collection = db.collection('sabiasQue'); // Asegúrate de que 'sabiasQue' sea el nombre correcto de la colección
   }
 
   // Crear un nuevo "Sabías Que"
@@ -19,6 +19,7 @@ class SabiasQue {
   // Obtener todos los "Sabías Que"
   async findAll() {
     try {
+      // Aquí obtenemos todos los registros de la colección sabiasQue
       return await this.collection.find({}).toArray();
     } catch (error) {
       console.error('Error en findAll():', error);
@@ -53,20 +54,19 @@ class SabiasQue {
     }
   }
 
- // Eliminar un "Sabías Que" por ID
+  // Eliminar un "Sabías Que" por ID
   async delete(id) {
     try {
       if (!ObjectId.isValid(id)) {
         throw new Error('ID inválido');
       }
       const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
-      return result;  // Retorna el resultado para verificar la eliminación
+      return result;
     } catch (error) {
       console.error('Error en delete():', error);
       throw new Error('Error al eliminar Sabías Que');
     }
   }
 }
-
 
 module.exports = SabiasQue;

@@ -14,6 +14,7 @@ const Convenio = require('./models/Convenio');
 const Cupon = require('./models/Cupon');
 const QRCode = require('qrcode');
 const Actividades = require('./models/Actividades');
+const SabiasQue = require('./models/SabiasQue');
 
 const NotificacionSchema = new mongoose.Schema({
   mensaje: { type: String, required: true },
@@ -1338,18 +1339,28 @@ router.post('/sabias-que', authenticateToken, checkRole('admin'), upload.single(
   try {
     await client.connect();
     const db = client.db('chefencasa');
-    const sabiasQueModel = new SabiasQue(db); // Usamos un modelo específico para "Sabías Que"
+    const sabiasQueModel = new SabiasQue(db);
+    const notificacionesCollection = db.collection('notificaciones'); // Para crear notificaciones
 
     // Crear el "Sabías Que"
     const nuevoSabiasQue = {
       titulo,
       descripcion,
-      beneficio, // Solo el beneficio relacionado con la salud
+      beneficio, // Beneficio relacionado con la salud
       imagen,
       fechaCreacion: new Date(),
     };
 
     await sabiasQueModel.create(nuevoSabiasQue);
+
+    // Crear una notificación
+    const notificacion = {
+      mensaje: `Nuevo "Sabías Que" creado: ${titulo}`,
+      tipo: 'sabias-que',
+      fecha: new Date(),
+      visto: false,
+    };
+    await notificacionesCollection.insertOne(notificacion);
 
     res.status(201).json({ message: 'Sabías Que creado exitosamente', sabiasQue: nuevoSabiasQue });
   } catch (error) {
@@ -1367,8 +1378,15 @@ router.get('/sabias-que', authenticateToken, async (req, res) => {
     const db = client.db('chefencasa');
     const sabiasQueModel = new SabiasQue(db);
 
-    const sabiasQueList = await sabiasQueModel.findAll();
-    res.status(200).json(sabiasQueList);
+    // Obtener todos los "Sabías Que"
+    const sabiasQueList = await sabiasQueModel.findAll(); // Usa el método findAll()
+
+    // Verificar si se obtuvo alguna entrada
+    if (sabiasQueList.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron registros de Sabías Que' });
+    }
+
+    res.status(200).json({ message: 'Sabías Que obtenidos exitosamente', sabiasQue: sabiasQueList });
   } catch (error) {
     console.error('Error al obtener Sabías Que:', error);
     res.status(500).json({ message: 'Error al obtener Sabías Que', error: error.message });
@@ -1451,31 +1469,24 @@ router.delete('/sabias-que/:id', authenticateToken, checkRole('admin'), async (r
   const { id } = req.params;
 
   try {
-    // Validar si el ID es válido
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'ID inválido' });
     }
-
-    // Conexión directa a la base de datos
-    const db = client.db('chefencasa');  // Usa tu cliente global 'client' que está conectado
-    const sabiasQueModel = new SabiasQue(db);  // Instanciamos el modelo con la base de datos
-
-    // Intentar eliminar el "Sabías Que"
+    const db = client.db('chefencasa');
+    const sabiasQueModel = new SabiasQue(db);
     const result = await sabiasQueModel.delete(id);
 
-    // Verificar si el "Sabías Que" fue encontrado y eliminado
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: 'Sabías Que no encontrado' });
     }
 
-    // Respuesta exitosa
     res.status(200).json({ message: 'Sabías Que eliminado exitosamente' });
   } catch (error) {
-    // Manejo de errores
     console.error('Error al eliminar Sabías Que:', error);
-    res.status(500).json({ message: 'Error al eliminar Sabías Que', error: error.message });
+    res.status(500).json({ message: 'Error al eliminar Sabías Que' });
   }
 });
+
 
 
 module.exports = router;
