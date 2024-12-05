@@ -1,38 +1,39 @@
 import React, { useState, useEffect } from 'react';
 
-const IMAGE_BASE_URL = 'http://localhost:4000';
-
 const SabiasQueAgregar = ({ onClose, onSave, sabiasQue }) => {
     const [titulo, setTitulo] = useState(sabiasQue ? sabiasQue.titulo : '');
     const [descripcion, setDescripcion] = useState(sabiasQue ? sabiasQue.descripcion : '');
     const [beneficio, setBeneficio] = useState(sabiasQue ? sabiasQue.beneficio : ''); // Campo beneficio agregado
     const [imagen, setImagen] = useState(sabiasQue ? sabiasQue.imagen : null);
-    const [imagenPreview, setImagenPreview] = useState(null); // Para almacenar la vista previa
 
+    // Actualización de los estados cuando sabiasQue cambia (para editar)
     useEffect(() => {
         if (sabiasQue) {
             setTitulo(sabiasQue.titulo);
             setDescripcion(sabiasQue.descripcion);
             setBeneficio(sabiasQue.beneficio || ''); // Asegúrate de que el beneficio se actualice si existe
             setImagen(sabiasQue.imagen || null); // Resetea la imagen para editar
-            setImagenPreview(sabiasQue.imagen ? `${IMAGE_BASE_URL}/${sabiasQue.imagen}` : null); // Configura la vista previa si existe
         }
     }, [sabiasQue]);
 
+    // Manejo de cambios en la imagen
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             if (file.type.startsWith('image/')) {
                 setImagen(file); // Establecer la imagen en el estado
-                setImagenPreview(URL.createObjectURL(file)); // Vista previa de la imagen
             } else {
                 alert('Por favor selecciona una imagen válida.');
             }
         }
-    };    
+    };
 
+    // Función de guardado (crear o editar)
     const handleSave = () => {
-        const sabiasQueData = { titulo, descripcion, beneficio, imagen }; // Incluir beneficio en el objeto
+        // Crear el objeto de "Sabías Que" con los datos
+        const sabiasQueData = { titulo, descripcion, beneficio, imagen };
+
+        // Llamar a la función onSave (se pasa desde el componente principal)
         onSave(sabiasQueData);
     };
 
@@ -85,7 +86,6 @@ const SabiasQueAgregar = ({ onClose, onSave, sabiasQue }) => {
                         className="w-full cursor-pointer rounded-lg border-[1.5px] border-gray-300 bg-transparent p-2 font-normal outline-none transition file:mr-5 file:cursor-pointer file:border-0 file:border-r file:border-solid file:border-gray-300 file:bg-white file:px-2 file:py-2 file:text-gray-700 file:hover:bg-green-600 file:hover:text-white focus:border-green-500"
                         onChange={handleImageChange}
                     />
-                    {imagenPreview && <img src={imagenPreview} alt="Vista previa" className="mt-4 h-32 object-cover" />}
                 </div>
 
                 {/* Botones */}

@@ -13,7 +13,7 @@ class Convenio {
       console.error('Error en create():', error);
       throw new Error('Error al crear convenio');
     }
-  }
+  }  
 
   async findAll() {
     try {
@@ -49,13 +49,14 @@ class Convenio {
     }
   }
 
-  async delete(id) {
+   // Método para eliminar un convenio por ID
+   async delete(id) {
     try {
       if (!ObjectId.isValid(id)) {
         throw new Error('ID inválido');
       }
       const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
-      return result;
+      return result; // Devuelve el resultado de la eliminación
     } catch (error) {
       console.error('Error en delete():', error);
       throw new Error('Error al eliminar convenio');
