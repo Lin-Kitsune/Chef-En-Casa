@@ -1,10 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getIngredientesMasUtilizados } from '../../services/gestionService';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js';
-
-// Registro de los componentes de Chart.js
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
 const IngredientesMasUtilizados = ({ rango }) => {
   const [ingredientesData, setIngredientesData] = useState([]);
@@ -25,49 +21,46 @@ const IngredientesMasUtilizados = ({ rango }) => {
     fetchIngredientes();
   }, [rango]);
 
-  // Configuración de los datos del gráfico
-  const data = {
-    labels: ingredientesData.map(item => item.nombre), // Nombres de los ingredientes
-    datasets: [
-      {
-        label: 'Cantidad Utilizada',
-        data: ingredientesData.map(item => item.cantidad), // Cantidad utilizada
-        backgroundColor: 'rgba(75, 192, 192, 0.2)', // Color de las barras
-        borderColor: 'rgba(75, 192, 192, 1)', // Color de borde
-        borderWidth: 1,
-      },
-    ],
-  };
+  // Si no hay datos, mostrar mensaje de carga o error
+  if (loading) {
+    return <p>Cargando gráfico...</p>;
+  }
 
-  // Opciones del gráfico
-  const options = {
-    responsive: true,
-    plugins: {
-      title: {
-        display: true,
-        text: 'Ingredientes Más Utilizados', // Título del gráfico
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          stepSize: 1,  // Solo números enteros
-        },
-      },
-    },
+  if (!ingredientesData || ingredientesData.length === 0) {
+    return <p>No hay ingredientes más utilizados en este rango.</p>;
+  }
+
+  // Datos para el gráfico de barras
+  const data = ingredientesData.map((item) => ({
+    name: item.nombre, // Nombre del ingrediente
+    cantidad: item.cantidad, // Cantidad utilizada
+  }));
+
+  // Función personalizada para mostrar el tooltip
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const { name, cantidad } = payload[0].payload;
+      return (
+        <div className="custom-tooltip">
+          <p className="label">{`Ingrediente: ${name}`}</p>
+          <p className="desc">{`Cantidad utilizada: ${cantidad}`}</p>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
-    <div className="grafico-container" style={{ width: '50%', margin: '0 auto' }}>
-      {loading ? (
-        <p>Cargando datos...</p>
-      ) : ingredientesData.length === 0 ? (
-        <p>No hay ingredientes utilizados en este rango.</p>
-      ) : (
-        <Bar data={data} options={options} width={400} height={250} />
-      )}
-    </div>
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip content={<CustomTooltip />} />
+        <Legend />
+        <Bar dataKey="cantidad" fill="#00a651" />
+      </BarChart>
+    </ResponsiveContainer>
   );
 };
 

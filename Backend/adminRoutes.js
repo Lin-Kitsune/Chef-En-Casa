@@ -15,6 +15,10 @@ const Cupon = require('./models/Cupon');
 const QRCode = require('qrcode');
 
 
+const cors = require('cors');
+const moment = require('moment');
+
+
 const NotificacionSchema = new mongoose.Schema({
   mensaje: { type: String, required: true },
   tipo: { type: String, enum: ['ingrediente', 'receta'], required: true },
@@ -41,6 +45,15 @@ const router = express.Router();
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey'; 
+
+// Configura CORS para el router de rutas que usan OPTION
+const corsOptions = {
+  origin: 'http://localhost:3000', // Asegúrate de que esta URL coincida con la de tu frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+router.use(cors(corsOptions));  // Aplica CORS solo en las rutas de admin
 
 // Ruta para login de Admin
 router.post('/login', async (req, res) => {
@@ -1137,6 +1150,390 @@ router.delete('/cupones/:id', authenticateToken, checkRole('admin'), async (req,
   }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //===================== RUTAS ACTIVIDADES OPERATIVAS DEL ADMIN=========================================
 
 //===================FUNCION AUXILIAR SOBRE OBTENCION DE DATOS POR FECHA (DIARIA, SEMANAL, MENSUAL, SEMESTRAL Y ANUAL)==========
@@ -1309,53 +1706,70 @@ router.get('/recetas-preparadas', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/recetas/mejor-valoradas', authenticateToken, checkRole('admin'), async (req, res) => {
-  const { rango } = req.query;
-
-  // Verifica si el parámetro 'rango' es válido
-  if (!rango || !['diario', 'semanal', 'mensual', 'semestral', 'anual'].includes(rango)) {
-    return res.status(400).json({ message: 'Rango no válido. Usa "diario", "semanal", "mensual", "semestral" o "anual".' });
+//Ruta para obtener las recetas valoradas 
+router.get('/recetas/mejor-valoradas', authenticateToken, async (req, res) => {
+  const { rango } = req.query; // Obtener el rango de la query (puede ser 'diario', 'semanal', 'mensual', etc.)
+  
+  // Validar el parámetro 'rango'
+  if (!rango || !['diario', 'semanal', 'mensual'].includes(rango)) {
+    return res.status(400).json({ error: "Rango no válido" });
   }
 
-  // Obtén la fecha de inicio según el rango
-  const fechaInicio = getFechaRango(rango); // Utiliza la función auxiliar para obtener el rango de fechas
-
   try {
-    const db = await connectToDatabase(); // Conecta y obtiene la base de datos
-    const recetasValoradasCollection = db.collection('recetasValoradas'); // Colección de recetas valoradas
-
-    // Realizar la consulta para obtener las recetas mejor valoradas dentro del rango de tiempo
-    const recetasMejorValoradas = await recetasValoradasCollection.aggregate([
-      {
-        $match: {
-          fechaValoracion: { $gte: fechaInicio } // Filtra por fecha de valoración
-        }
-      },
-      {
-        $group: {
-          _id: "$recipeId", // Agrupar por ID de receta
-          promedioValoracion: { $avg: "$valoracion" }, // Promedio de valoraciones por receta
-          nombre: { $first: "$nombre" }, // Obtener el nombre de la receta
-          imagen: { $first: "$imageUrl" }, // Obtener la imagen de la receta
-        }
-      },
-      {
-        $sort: { promedioValoracion: -1 } // Ordenar por promedio de valoraciones
-      },
-      {
-        $limit: 10 // Limitar a las top 10 recetas
-      }
-    ]).toArray();
-
-    // Verificar si se encontraron recetas y enviar respuesta
-    if (recetasMejorValoradas.length > 0) {
-      return res.json(recetasMejorValoradas); // Devolver las recetas mejor valoradas
-    } else {
-      return res.status(404).json({ message: 'No hay recetas valoradas para este rango.' });
+    const db = await connectToDatabase();
+    
+    // Determinar el rango de fechas con moment.js o Date
+    let fechaInicio;
+    const fechaActual = moment();
+    
+    switch (rango) {
+      case 'diario':
+        fechaInicio = fechaActual.clone().startOf('day'); // Hoy a las 00:00
+        break;
+      case 'semanal':
+        fechaInicio = fechaActual.clone().startOf('week'); // Inicio de la semana
+        break;
+      case 'mensual':
+        fechaInicio = fechaActual.clone().startOf('month'); // Inicio del mes
+        break;
+      default:
+        fechaInicio = fechaActual.clone().startOf('month'); // Por defecto, inicio del mes
     }
+
+    const fechaFin = fechaActual.clone().endOf('day'); // Fin del día actual, por ahora
+
+    // Consulta para obtener las recetas mejor valoradas dentro del rango de fechas
+    const recetas = await db.collection('recetasValoradas')
+      .aggregate([
+        {
+          $match: {
+            fechaValoracion: {
+              $gte: fechaInicio.toDate(),
+              $lte: fechaFin.toDate(),
+            }
+          }
+        },
+        {
+          $group: {
+            _id: '$nombre',
+            promedioValoracion: { $avg: '$valoracion' },
+            cantidadValoraciones: { $sum: 1 },
+          }
+        },
+        {
+          $sort: { promedioValoracion: -1 } // Ordenar por valoración promedio
+        },
+        {
+          $limit: 5 // Opcional, para mostrar solo las top 5 recetas
+        }
+      ])
+      .toArray();
+
+    // Enviar los resultados
+    res.json(recetas);
   } catch (error) {
-    console.error('Error al obtener las recetas mejor valoradas:', error);
-    res.status(500).json({ message: 'Error al obtener las recetas mejor valoradas.' });
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener las recetas mejor valoradas' });
   }
 });
 
@@ -1386,7 +1800,7 @@ router.get('/recetas/guardadas', async (req, res) => {
       },
       { 
         $group: { 
-          _id: "$recipeId",  // Agrupa por el ID de la receta
+          _id: "$nombreReceta",  // Agrupa por el ID de la receta
           count: { $sum: 1 }  // Cuenta cuántas veces se ha guardado cada receta
         }
       },

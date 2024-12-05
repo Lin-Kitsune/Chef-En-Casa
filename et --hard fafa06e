@@ -1,0 +1,49 @@
+[33m2e506c5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{0}: reset: moving to HEAD~1
+[33mfafa06e[m HEAD@{1}: commit: Implementacion de funciones operativas en adminweb, junto con algunos graficos operativos
+[33m2e506c5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{2}: commit (merge): Merge branch 'main' of https://github.com/Lin-Kitsune/Chef-En-Casa
+[33m960282c[m HEAD@{3}: commit: Guardando cambios en adminRoutes.js antes de hacer pull
+[33m8eac048[m HEAD@{4}: commit: e
+[33m3ac324b[m HEAD@{5}: commit (merge): Merge branch 'main' of https://github.com/Lin-Kitsune/Chef-En-Casa
+[33m2a31e3e[m HEAD@{6}: commit: implementacion de grafico de usuarios activos
+[33m5d225d9[m HEAD@{7}: commit: si, borré funciones de index y las pasé a adminRoutes
+[33m09bf3ff[m HEAD@{8}: commit: Agregar rutas de gráficos en adminRoutes y ajustes en User model e index.js
+[33mb9e77e6[m HEAD@{9}: commit: Implementacion en backend, primer grafico operativo y correción de funcion en index
+[33m887b984[m HEAD@{10}: commit: Add: Socket.io setup and HTTP server integration
+[33m006d15c[m HEAD@{11}: commit (amend): Fix: Installed leaflet and react-leaflet dependencies
+[33m63b1cfe[m HEAD@{12}: commit: Fix: Installed leaflet and react-leaflet dependencies
+[33mf8c1e82[m HEAD@{13}: pull origin main: Fast-forward
+[33ma8880fe[m HEAD@{14}: rebase (finish): returning to refs/heads/main
+[33ma8880fe[m HEAD@{15}: rebase (continue): Corrección CRUD de convenios y agregado de envio de notificación al usuario al crear nuevo convenio/campaña
+[33m5e6124d[m HEAD@{16}: pull origin main --rebase (start): checkout 5e6124d668e855491e473021fc2c87f6fd9dd665
+[33m356039c[m HEAD@{17}: commit: Corrección CRUD de convenios y agregado de envio de notificación al usuario al crear nuevo convenio/campaña
+[33m6cde8b1[m HEAD@{18}: checkout: moving from main to main
+[33m6cde8b1[m HEAD@{19}: commit: Se agregó el CRUD de convenios
+[33m09b928c[m HEAD@{20}: pull origin main: Fast-forward
+[33m7970f3b[m HEAD@{21}: pull origin main --rebase (finish): returning to refs/heads/main
+[33m7970f3b[m HEAD@{22}: pull origin main --rebase (pick): Funciones de notificacion mensual de ingreso de datos
+[33m6000d26[m HEAD@{23}: pull origin main --rebase (start): checkout 6000d264fcd9367bf5005163b0f0cc8cc37c3971
+[33mc85ec3d[m HEAD@{24}: commit: Funciones de notificacion mensual de ingreso de datos
+[33m82fdf01[m HEAD@{25}: checkout: moving from main to main
+[33m82fdf01[m HEAD@{26}: rebase (finish): returning to refs/heads/main
+[33m82fdf01[m HEAD@{27}: rebase (continue): Agregada funcionalidad de notificacion sobre ingredientes y recetas agragadas al sistema
+[33m2ab972b[m HEAD@{28}: pull origin main --rebase (start): checkout 2ab972b65204b4f0fcc20b538a7c77898dfb4441
+[33md637d28[m HEAD@{29}: commit: Agregada funcionalidad de notificacion sobre ingredientes y recetas agragadas al sistema
+[33m0fe00ff[m HEAD@{30}: pull origin main: Fast-forward
+[33m1ba0875[m HEAD@{31}: commit: implementado funciones de admin, reclamos, agregar ingrediente, categoria y recetas
+[33m5047ed7[m HEAD@{32}: pull origin main --rebase (finish): returning to refs/heads/main
+[33m5047ed7[m HEAD@{33}: pull origin main --rebase (pick): Subiendo avance del proyecto
+[33md17d2d3[m HEAD@{34}: pull origin main --rebase (start): checkout d17d2d32124849386394004bc11f3fc79e5c0294
+[33m543487b[m HEAD@{35}: commit (merge): Implementacion de funciones de administrador (reclamos, agregar ingredientes, categorias y recetas
+[33m6acae2a[m HEAD@{36}: commit: Subiendo avance del proyecto
+[33m52735dc[m HEAD@{37}: pull origin main: Fast-forward
+[33m6e71a9f[m HEAD@{38}: checkout: moving from main to main
+[33m6e71a9f[m HEAD@{39}: commit (merge): Conflictos de merge resueltos
+[33m8893d93[m HEAD@{40}: commit: Subiendo actualizacion de Backend y nuevo models
+[33m3a284ad[m HEAD@{41}: checkout: moving from main to main
+[33m3a284ad[m HEAD@{42}: pull origin main: Fast-forward
+[33meecafb5[m HEAD@{43}: commit: Agregado el manejo de la API de Spoonacular y actualizaciones de logs
+[33m23fafbe[m HEAD@{44}: pull origin main: Fast-forward
+[33mea93b2b[m HEAD@{45}: pull origin main: Fast-forward
+[33mdb7dee8[m HEAD@{46}: commit: Añadir archivo README con detalles del proyecto Backend
+[33ma0d69ae[m HEAD@{47}: commit: Mover backend a la carpeta Backend
+[33m461df8b[m HEAD@{48}: clone: from https://github.com/Lin-Kitsune/Chef-En-Casa.git

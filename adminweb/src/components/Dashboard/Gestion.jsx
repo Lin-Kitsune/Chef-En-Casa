@@ -16,6 +16,7 @@ import RecetasPreparadas from '../Graficos/RecetasPreparadas'; //Importa el grá
 import RecetasValoradas from '../Graficos/RecetasValoradas'; // Importa el gráfico
 import RecetasGuardadas from '../Graficos/RecetasGuardadas'; //Importa el gráfico
 import IngredientesMasUtilizados from '../Graficos/IngredientesMasUtilizados'; // Importa el gráfico
+import SolicitudesRespondidas from '../Graficos/SolicitudesRespondidas'; // Importa el gráfico
 
 const Gestion = () => {
     // Estado para manejar la visibilidad de los gráficos y el rango
@@ -23,31 +24,44 @@ const Gestion = () => {
     const [mostrarGraficoRecetas, setMostrarGraficoRecetas] = useState(false); // Para recetas preparadas
     const [mostrarGraficoRecetasGuardadas, setMostrarGraficoRecetasGuardadas] = useState(false); // Para recetas guardadas
     const [mostrarGraficoIngredientes, setMostrarGraficoIngredientes] = useState(false);
+    const [mostrarGraficoSolicitudes, setMostrarGraficoSolicitudes] = useState(false); // Para solicitudes respondidas
     const [rango, setRango] = useState('mensual'); //rango por defecto
   
     // Función para manejar el cambio de rango
     const handleRangoChange = (e) => {
-      setRango(e.target.value);
-    };
-  
-    // Función para mostrar/ocultar el gráfico de "Usuarios"
-    const toggleGraficoUsuarios = () => {
-      setMostrarGrafico(!mostrarGrafico);
-      setMostrarGraficoRecetas(false); // Ocultar el gráfico de recetas si se está mostrando el de usuarios
-    };
-  
-    // Función para mostrar/ocultar el gráfico de "Recetas"
-    const toggleGraficoRecetas = () => {
-      setMostrarGraficoRecetas(!mostrarGraficoRecetas); // Alternar visibilidad del gráfico de recetas
-      setMostrarGrafico(false); // Ocultar el gráfico de usuarios si se está mostrando el de recetas
-      setMostrarGraficoRecetasGuardadas(!mostrarGraficoRecetasGuardadas); // Alternar visibilidad del gráfico de recetas guardadas
+        setRango(e.target.value);
     };
 
-    // Función para manejar el cambio de visibilidad del gráfico de ingredientes
-    const toggleGraficoIngredientes = () => {
-        setMostrarGraficoIngredientes(!mostrarGraficoIngredientes);
-        setMostrarGrafico(false); // Ocultar el gráfico de usuarios si se está mostrando el de ingredientes
-        setMostrarGraficoRecetas(false); // Ocultar el gráfico de recetas si se está mostrando el de ingredientes
+    // Función para manejar el clic en "Usuarios"
+    const handleUsuariosClick = () => {
+        setMostrarGrafico(true);
+        setMostrarGraficoRecetas(false);
+        setMostrarGraficoRecetasGuardadas(false);
+        setMostrarGraficoIngredientes(false);
+    };
+
+    // Función para manejar el clic en "Recetas"
+    const handleRecetasClick = () => {
+        setMostrarGrafico(false);
+        setMostrarGraficoRecetas(true);
+        setMostrarGraficoRecetasGuardadas(false);
+        setMostrarGraficoIngredientes(false);
+    };
+
+    // Función para manejar el clic en "Ingredientes"
+    const handleIngredientesClick = () => {
+        setMostrarGrafico(false);
+        setMostrarGraficoRecetas(false);
+        setMostrarGraficoRecetasGuardadas(false);
+        setMostrarGraficoIngredientes(true);
+    };
+
+    // Función para manejar el clic en "Reclamos"
+    const handleClickReclamos = () => {
+        setMostrarGraficoSolicitudes(true);
+        setMostrarGrafico(false); // Ocultar otros gráficos si están visibles
+        setMostrarGraficoRecetas(false);
+        setMostrarGraficoRecetasGuardadas(false);
     };
 
   return (
@@ -70,7 +84,7 @@ const Gestion = () => {
         {/* Botones de Funcionalidades */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-4 mt-5">
             {/* Recetas */}
-            <Link to="#" onClick={toggleGraficoRecetas}>
+            <Link to="#" onClick={handleRecetasClick}>
                 <div className="bg-gradient-to-r from-[#00a651] to-[#8dc63f] w-40 h-40 rounded-3xl shadow-lg flex flex-col items-center justify-center cursor-pointer">
                     <img src={RecetasIcon} alt="Recetas Icon" className="w-16 h-16 mb-2" />
                     <p className="text-base text-white font-semibold">RECETAS</p>
@@ -78,7 +92,7 @@ const Gestion = () => {
             </Link>
 
             {/* Ingredientes */}
-            <Link to="#" onClick={toggleGraficoIngredientes}>
+            <Link to="#" onClick={handleIngredientesClick}>
                 <div className="bg-gradient-to-r from-[#00a651] to-[#8dc63f] w-40 h-40 rounded-3xl shadow-lg flex flex-col items-center justify-center cursor-pointer">
                     <img src={IngredientesIcon} alt="Ingredientes Icon" className="w-16 h-16 mb-2" />
                     <p className="text-base text-white font-semibold">INGREDIENTES</p>
@@ -86,7 +100,7 @@ const Gestion = () => {
             </Link>
 
             {/* Usuarios */}
-            <Link to="#" onClick={toggleGraficoUsuarios}>
+            <Link to="#" onClick={handleUsuariosClick}>
                 <div className="bg-gradient-to-r from-[#00a651] to-[#8dc63f] w-40 h-40 rounded-3xl shadow-lg flex flex-col items-center justify-center cursor-pointer">
                 <img src={UsuariosIcon} alt="Usuarios Icon" className="w-16 h-16 mb-2" />
                 <p className="text-base text-white font-semibold">USUARIOS</p>
@@ -94,7 +108,7 @@ const Gestion = () => {
             </Link>
 
             {/* Reclamos */}
-            <Link to="/reclamos">
+            <Link to="#" onClick={handleClickReclamos}>
                 <div className="bg-gradient-to-r from-[#00a651] to-[#8dc63f] w-40 h-40 rounded-3xl shadow-lg flex flex-col items-center justify-center cursor-pointer">
                 <img src={ReclamosIcon} alt="Reclamos Icon" className="w-16 h-16 mb-2" />
                 <p className="text-base text-white font-semibold">RECLAMOS</p>
@@ -171,6 +185,14 @@ const Gestion = () => {
             <NuevosUsuarios rango={rango} onRangoChange={handleRangoChange} />
             </div>
         </>
+        )}
+
+        {/* Mostrar gráficos de Reclamos cuando se hace clic en RECLAMOS */}
+        {mostrarGraficoSolicitudes && (
+            <div className="mt-8">
+                <h2 className="text-2xl font-semibold text-center mb-4">Reclamos/Solicitudes Respondidas</h2>
+                <SolicitudesRespondidas rango={rango} />
+            </div>
         )}
     </div>
   );

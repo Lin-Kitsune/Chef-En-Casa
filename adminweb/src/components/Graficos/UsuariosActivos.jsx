@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS,
-   Title, 
-   Tooltip, 
-   Legend, 
-   BarElement, 
-   CategoryScale, 
-   LinearScale } from 'chart.js';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getUsuariosActivos } from '../../services/gestionService';
-
-// Registro de los componentes de Chart.js
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
 const UsuariosActivos = ({ rango }) => {
   const [usuariosActivosData, setUsuariosActivosData] = useState(null);
@@ -35,38 +25,25 @@ const UsuariosActivos = ({ rango }) => {
   }
 
   // Definir los datos para el gráfico de barras
-  const data = {
-    labels: ['Usuarios Activos'], // El eje X tiene solo una categoría: 'Usuarios Activos'
-    datasets: [
-      {
-        label: 'Cantidad de Usuarios Activos',
-        data: [usuariosActivosData], // El número de usuarios activos
-        backgroundColor: '#00a651', // Color de la barra
-      },
-    ],
-  };
-
-  // Opciones del gráfico
-  const options = {
-    responsive: true,
-    plugins: {
-      title: {
-        display: true,
-        text: 'Usuarios Activos', // Título del gráfico
-      },
+  const data = [
+    {
+      name: 'Usuarios Activos', // Etiqueta para el gráfico
+      usuarios: usuariosActivosData, // Número de usuarios activos
     },
-    scales: {
-      y: {
-        beginAtZero: true, // Asegura que el eje Y comienza en 0
-        ticks: {
-          stepSize: 1,  // Solo números enteros
-          max: 20,      // Establece el valor máximo en 20
-        },
-      },
-    },
-  };
+  ];
 
-  return <Bar data={data} options={options} />;
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        <Bar dataKey="usuarios" fill="#00a651" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
 };
 
 export default UsuariosActivos;

@@ -1,6 +1,6 @@
 // components/Graficos/Reclamos.js
 import React from 'react';
-import SatisfaccionReclamos from './SatisfaccionReclamos';
+import SatisfaccionReclamos from './SolicitudesRespondidas';
 
 const Reclamos = () => {
   return (

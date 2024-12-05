@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS,
-   Title, 
-   Tooltip, 
-   Legend, 
-   BarElement, 
-   CategoryScale, 
-   LinearScale } from 'chart.js';
-import { getRecetasGuardadas } from '../../services/gestionService';
-
-// Registro de los componentes de Chart.js
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getRecetasGuardadas } from '../../services/gestionService'; // Asegúrate de importar el servicio
 
 const RecetasGuardadas = ({ rango }) => {
   const [recetasGuardadasData, setRecetasGuardadasData] = useState([]);
@@ -27,42 +17,33 @@ const RecetasGuardadas = ({ rango }) => {
     fetchData();
   }, [rango]);
 
-  // Procesar los datos para el gráfico (ajustar según tu respuesta de la API)
-  const chartData = {
-    labels: recetasGuardadasData.map(receta => receta.title), // Etiquetas con los nombres de las recetas
-    datasets: [
-      {
-        label: 'Recetas Guardadas',
-        data: recetasGuardadasData.map(receta => receta.count), // Aquí asumo que 'count' es el número de veces que la receta fue guardada
-        backgroundColor: '#00a651', // Color de las barras
-      },
-    ],
-  };
+  // Si no hay recetas guardadas, muestra un mensaje
+  if (!recetasGuardadasData || recetasGuardadasData.length === 0) {
+    return <p>No hay Recetas Guardadas en este rango.</p>;
+  }
 
-  // Opciones del gráfico
-  const options = {
-    responsive: true,
-    plugins: {
-      title: {
-        display: true,
-        text: 'Recetas Guardadas', // Título del gráfico
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true, // Asegura que el eje Y comienza en 0
-        ticks: {
-          stepSize: 1,  // Solo números enteros
-          max: 20,      // Establece el valor máximo en 20
-        },
-      },
-    },
-  };
+  // Procesar los datos para el gráfico
+  const data = recetasGuardadasData.map(receta => ({
+    name: receta.title, // Nombre de la receta
+    count: receta.count, // Número de veces que fue guardada
+  }));
 
+  // Configuración de las opciones del gráfico
   return (
-    <div className="grafico-container" style={{ width: '50%', margin: '0 auto' }}>
-      <Bar data={chartData} options={options} width={400} height={250} /> {/* Ajusta el tamaño */}
-    </div>
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis
+          dataKey="name" // Usamos el nombre de la receta como key
+          axisLine={false} // Eliminamos la línea del eje X
+          tickLine={false} // Eliminamos las líneas de los ticks del eje X
+        />
+        <YAxis />
+        <Tooltip formatter={(value, name) => `Recetas Guardadas: ${value}`} />
+        <Legend />
+        <Bar dataKey="count" fill="#00a651" />
+      </BarChart>
+    </ResponsiveContainer>
   );
 };
 

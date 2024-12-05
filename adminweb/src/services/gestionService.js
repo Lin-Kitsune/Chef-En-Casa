@@ -60,39 +60,45 @@ export const getRecetasPreparadas = async (rango = 'mensual') => {
 // Función para obtener las recetas mejor valoradas según el rango
 export const getRecetasMejorValoradas = async (rango = 'mensual') => {
   try {
-    const token = await getToken(); // Obtener el token del usuario
+    console.log('Rango enviado:', rango); // Verifica qué rango se está enviando
+    const token = await getToken(); // Obtener el token
     const response = await axios.get(`${API_URL}/recetas/mejor-valoradas`, {
       headers: {
-        Authorization: `Bearer ${token}`, // Pasar el token en la cabecera
+        Authorization: `Bearer ${token}`, // Pasar el token de autorización
       },
-      params: { rango }, // Pasar el rango como parámetro en la query string
+      params: { rango }, // Asegúrate de que 'rango' sea uno de los valores válidos
     });
 
-    console.log('Recetas Mejor Valoradas:', response.data); // Verifica qué datos estás recibiendo
-    return response.data; // Retorna las recetas mejor valoradas
+    // Aquí devolvemos solo el nombre y el promedio de valoraciones
+    return response.data.map((receta) => ({
+      nombre: receta.nombre,
+      promedioValoracion: receta.averageRating, // Asegúrate de que el campo se llama 'averageRating'
+    }));
+    
   } catch (error) {
     console.error('Error al obtener las recetas mejor valoradas:', error);
-    throw error; // Lanza el error para que pueda ser manejado en otro lugar
+    throw error;
   }
 };
 
 
 // Función para obtener las recetas más guardadas por los usuarios según un rango de fechas
 export const getRecetasGuardadas = async (rango = 'mensual') => {
-    try {
-      const token = await getToken(); // Obtén el token de autenticación
+  try {
+      const token = await getToken(); // Obtener el token de autenticación
       const response = await axios.get(`${API_URL}/recetas/guardadas`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        params: { rango }, // Envía el rango como parámetro
+          headers: {
+              Authorization: `Bearer ${token}`,
+          },
+          params: { rango }, // Enviar el rango como parámetro en la query string
       });
-      return response.data; // Devuelve las recetas más guardadas
-    } catch (error) {
-      console.error('Error al obtener las recetas guardadas:', error); // Muestra el error en consola
-      throw error; // Lanza el error para que sea manejado en la interfaz de usuario
-    }
+      return response.data; // Retorna las recetas guardadas
+  } catch (error) {
+      console.error('Error al obtener las recetas guardadas:', error);
+      throw error;
+  }
 };
+
 
 
 // Función para obtener los ingredientes más utilizados según el rango
@@ -111,5 +117,20 @@ export const getIngredientesMasUtilizados = async (rango = 'mensual') => {
   } catch (error) {
     console.error('Error al obtener los ingredientes más utilizados:', error);
     throw error; // Lanza el error para que lo maneje la interfaz de usuario
+  }
+};
+
+
+// Función para obtener las solicitudes respondidas según el rango de tiempo
+export const getSolicitudesRespondidas = async (rango) => {
+  try {
+    // Realizamos la solicitud GET al backend, pasando el rango de fechas como query
+    const response = await axios.get(`${API_URL}/solicitudes-respondidas`, {
+      params: { rango }
+    });
+    return response.data; // Devolvemos la respuesta que contiene las cantidades por tipo de reclamo
+  } catch (error) {
+    console.error('Error al obtener las solicitudes respondidas:', error);
+    throw error; // Lanzamos el error para que sea manejado en el componente
   }
 };

@@ -1,11 +1,6 @@
-// components/Graficos/RecetasPreparadas.js
 import React, { useState, useEffect } from 'react';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
-
-import { getRecetasPreparadas } from '../../services/gestionService';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getRecetasPreparadas } from '../../services/gestionService'; // Asegúrate de importar el servicio de recetas preparadas
 
 const RecetasPreparadas = ({ rango }) => {
   const [recetasData, setRecetasData] = useState(null);
@@ -27,42 +22,31 @@ const RecetasPreparadas = ({ rango }) => {
     return <p>Cargando gráfico...</p>;
   }
 
-  // Definir los datos para el gráfico
-  const data = {
-    labels: recetasData.map((receta) => receta._id), // Utilizar el nombre de la receta como etiquetas
-    datasets: [
-      {
-        label: 'Recetas Preparadas',
-        data: recetasData.map((receta) => receta.cantidad), // Utilizar la cantidad de recetas preparadas
-        backgroundColor: '#00a651', // Color de las barras
-      },
-    ],
-  };
-
-  // Opciones del gráfico
-  const options = {
-    responsive: true,
-    plugins: {
-      title: {
-        display: true,
-        text: 'Recetas Preparadas', // Título del gráfico
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true, // Asegura que el eje Y comienza en 0
-        ticks: {
-          stepSize: 1,  // Solo números enteros
-          max: 20,      // Establece el valor máximo en 20
-        },
-      },
-    },
-  };
+  // Definir los datos para el gráfico de barras
+  const data = recetasData.map((receta) => ({
+    name: receta._id, // Etiqueta interna, que no se mostrará en el eje X
+    cantidad: receta.cantidad, // Cantidad de recetas preparadas
+    recetaNombre: receta.nombre, // El nombre de la receta
+  }));
 
   return (
-    <div className="grafico-container" style={{ width: '50%', margin: '0 auto' }}>
-      <Bar data={data} options={options} width={400} height={250} /> {/* Ajusta el tamaño */}
-    </div>
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" hide /> {/* Se oculta el eje X */}
+        <YAxis />
+        <Tooltip 
+          formatter={(value, name, props) => (
+            <>
+              <p><strong>{props.payload.recetaNombre}</strong></p> {/* Nombre de la receta */}
+              <p>{value} recetas preparadas</p> {/* Cantidad de recetas */}
+            </>
+          )}
+        />
+        <Legend />
+        <Bar dataKey="cantidad" fill="#00a651" />
+      </BarChart>
+    </ResponsiveContainer>
   );
 };
 
