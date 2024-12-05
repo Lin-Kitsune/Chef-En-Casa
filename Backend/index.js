@@ -423,7 +423,9 @@ app.listen(PORT, () => {
 });
 
 
-module.exports = app;
+module.exports = {app,
+connectToDatabase,
+};
 
 //chefencasa1@chefencasa-437717.iam.gserviceaccount.com
 //GOOGLE_APPLICATION_CREDENTIALS=./ruta/al/archivo_de_credenciales.json
