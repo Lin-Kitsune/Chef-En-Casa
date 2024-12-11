@@ -38,6 +38,7 @@ app.use(helmet());
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 100 // Límite de 100 solicitudes por IP cada 15 minutos
+  message: 'Demasiadas solicitudes, por favor intenta nuevamente más tarde.'
 });
 app.use(limiter);
 
